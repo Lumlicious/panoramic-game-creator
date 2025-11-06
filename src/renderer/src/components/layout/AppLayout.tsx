@@ -38,7 +38,7 @@ export function AppLayout() {
         <main className="flex flex-1 bg-muted/20">
           {viewMode === 'editor' ? (
             // Panorama Editor View
-            <PanoramaViewer panorama={panorama} />
+            <PanoramaViewer panorama={panorama} nodeId={selectedNodeId || undefined} />
           ) : (
             // Node Graph View (placeholder for Phase 6)
             <div className="flex flex-1 items-center justify-center">

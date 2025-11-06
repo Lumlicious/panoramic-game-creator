@@ -1,9 +1,17 @@
-import { useEffect, useState } from 'react'
-import { useFrame, useThree } from '@react-three/fiber'
+import { useEffect, useState, useRef } from 'react'
+import { useFrame, useThree, ThreeEvent } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
 import * as THREE from 'three'
 import { SPHERE_CONFIG, CAMERA_CONFIG } from '@/lib/config'
-import type { PanoramaData } from '@/types'
+import { cartesianToSpherical } from '@/lib/coordinates'
+import { validatePolygon } from '@/lib/validation'
+import { useEditorStore } from '@/stores/editorStore'
+import { useProjectStore } from '@/stores/projectStore'
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
+import { HotspotDrawing } from './HotspotDrawing'
+import { HotspotMesh } from './HotspotMesh'
+import { VertexMarkers } from './VertexMarkers'
+import type { PanoramaData, SphericalPoint } from '@/types'
 
 /**
  * PanoramaSphere Component
@@ -20,11 +28,147 @@ import type { PanoramaData } from '@/types'
 
 interface PanoramaSphereProps {
   panorama?: PanoramaData
+  nodeId?: string // Current node ID for creating hotspots
 }
 
-export function PanoramaSphere({ panorama }: PanoramaSphereProps) {
+export function PanoramaSphere({ panorama, nodeId }: PanoramaSphereProps) {
   const [loadedTexture, setLoadedTexture] = useState<THREE.Texture | THREE.Texture[] | null>(null)
   const [geometryType, setGeometryType] = useState<'sphere' | 'box' | null>(null)
+  const meshRef = useRef<THREE.Mesh>(null)
+  const controlsRef = useRef<any>(null)
+
+  // Get drawing mode from editor store
+  const drawingMode = useEditorStore((state) => state.drawingMode)
+  const setDrawingMode = useEditorStore((state) => state.setDrawingMode)
+  const selectedHotspotId = useEditorStore((state) => state.selectedHotspotId)
+  const setSelectedHotspotId = useEditorStore((state) => state.setSelectedHotspotId)
+
+  // Get project store functions
+  const addHotspot = useProjectStore((state) => state.addHotspot)
+  const removeHotspot = useProjectStore((state) => state.removeHotspot)
+  const updateHotspot = useProjectStore((state) => state.updateHotspot)
+
+  // Subscribe to the current node so component re-renders when it changes
+  const currentNode = useProjectStore((state) =>
+    nodeId ? state.nodes.find((n) => n.id === nodeId) : undefined
+  )
+  const hotspots = currentNode?.hotspots || []
+
+  // Get selected hotspot for editing
+  const selectedHotspot = hotspots.find((h) => h.id === selectedHotspotId)
+
+  // Debug: Log when selectedHotspot polygon changes
+  useEffect(() => {
+    if (selectedHotspot) {
+      console.log('selectedHotspot polygon updated:', selectedHotspot.polygon)
+    }
+  }, [selectedHotspot?.polygon])
+
+  // Track points being drawn (temporary state during drawing)
+  const [drawingPoints, setDrawingPoints] = useState<SphericalPoint[]>([])
+
+  // Track hovered hotspot
+  const [hoveredHotspotId, setHoveredHotspotId] = useState<string | null>(null)
+
+  // Handle vertex update during editing
+  const handleVertexUpdate = (vertexIndex: number, newPoint: SphericalPoint) => {
+    console.log('handleVertexUpdate called:', vertexIndex, newPoint)
+    if (!selectedHotspot || !nodeId) {
+      console.log('No selectedHotspot or nodeId')
+      return
+    }
+
+    const newPolygon = [...selectedHotspot.polygon]
+    newPolygon[vertexIndex] = newPoint
+
+    // Validate the updated polygon
+    const validation = validatePolygon(newPolygon)
+    console.log('Validation result:', validation)
+    if (!validation.valid) {
+      console.warn('Vertex update would create invalid polygon:', validation.error)
+      // Don't apply the update if it would make the polygon invalid
+      return
+    }
+
+    console.log('Calling updateHotspot')
+    updateHotspot(nodeId, selectedHotspot.id, { polygon: newPolygon })
+  }
+
+  // Keyboard shortcuts for drawing
+  useKeyboardShortcuts({
+    onEnter: () => {
+      if (drawingMode === 'drawing' && drawingPoints.length >= 3 && nodeId) {
+        console.log('Finishing polygon with', drawingPoints.length, 'points')
+        console.log('Points:', drawingPoints)
+
+        // Validate polygon before creating hotspot
+        const validation = validatePolygon(drawingPoints)
+        if (!validation.valid) {
+          console.error('Polygon validation failed:', validation.error)
+          // TODO: Show toast notification with error
+          return
+        }
+
+        // Create hotspot in projectStore
+        const hotspot = addHotspot(nodeId, drawingPoints)
+        if (hotspot) {
+          console.log('Created hotspot:', hotspot.id)
+        }
+
+        setDrawingPoints([])
+        setDrawingMode('select')
+      } else if (drawingMode === 'drawing' && drawingPoints.length < 3) {
+        console.log('Need at least 3 points to finish polygon')
+      }
+    },
+    onEscape: () => {
+      if (drawingMode === 'drawing') {
+        console.log('Canceling drawing mode')
+        setDrawingPoints([])
+        setDrawingMode('select')
+      }
+    },
+    onDelete: () => {
+      if (selectedHotspotId && nodeId) {
+        console.log('Deleting hotspot:', selectedHotspotId)
+        removeHotspot(nodeId, selectedHotspotId)
+        setSelectedHotspotId(null)
+      }
+    }
+  })
+
+  // Handle click on sphere
+  const handleSphereClick = (event: ThreeEvent<MouseEvent>) => {
+    event.stopPropagation()
+
+    // Get the 3D intersection point
+    const point = event.point
+
+    // Convert to spherical coordinates
+    const spherical = cartesianToSpherical(point)
+
+    // If in drawing mode, add point to polygon
+    if (drawingMode === 'drawing') {
+      setDrawingPoints((prev) => {
+        const newPoints = [...prev, spherical]
+        console.log(`Point ${newPoints.length} added:`, {
+          theta: spherical.theta.toFixed(4),
+          phi: spherical.phi.toFixed(4)
+        })
+        return newPoints
+      })
+    } else {
+      // Otherwise just log for testing
+      console.log('Sphere clicked at:')
+      console.log('  Cartesian:', { x: point.x.toFixed(2), y: point.y.toFixed(2), z: point.z.toFixed(2) })
+      console.log('  Spherical:', {
+        theta: spherical.theta.toFixed(4),
+        phi: spherical.phi.toFixed(4),
+        thetaDeg: (spherical.theta * 180 / Math.PI).toFixed(2) + '°',
+        phiDeg: (spherical.phi * 180 / Math.PI).toFixed(2) + '°'
+      })
+    }
+  }
 
   // Load texture when panorama changes
   useEffect(() => {
@@ -171,8 +315,10 @@ export function PanoramaSphere({ panorama }: PanoramaSphereProps) {
       {/* Panorama Mesh - Only render when texture is loaded */}
       {geometryType && loadedTexture && (
         <mesh
+          ref={meshRef}
           scale={geometryType === 'sphere' ? [-1, 1, 1] : [1, 1, 1]}
           material={geometryType === 'box' ? cubicMaterials : undefined}
+          onClick={handleSphereClick}
         >
           {/* Geometry switches based on panorama type */}
           {geometryType === 'sphere' && (
@@ -189,8 +335,51 @@ export function PanoramaSphere({ panorama }: PanoramaSphereProps) {
         </mesh>
       )}
 
+      {/* Render existing hotspots */}
+      {hotspots.map((hotspot) => (
+        <HotspotMesh
+          key={hotspot.id}
+          hotspot={hotspot}
+          isSelected={selectedHotspotId === hotspot.id}
+          isHovered={hoveredHotspotId === hotspot.id}
+          onClick={() => {
+            console.log('Hotspot clicked:', hotspot.id)
+            setSelectedHotspotId(hotspot.id)
+          }}
+          onPointerEnter={() => {
+            setHoveredHotspotId(hotspot.id)
+          }}
+          onPointerLeave={() => {
+            setHoveredHotspotId(null)
+          }}
+        />
+      ))}
+
+      {/* Drawing overlay - show point markers and lines */}
+      <HotspotDrawing points={drawingPoints} />
+
+      {/* Vertex markers for editing selected hotspot */}
+      {selectedHotspot && (
+        <VertexMarkers
+          points={selectedHotspot.polygon}
+          onUpdateVertex={handleVertexUpdate}
+          sphereMesh={meshRef.current || undefined}
+          onDragStart={() => {
+            if (controlsRef.current) {
+              controlsRef.current.enabled = false
+            }
+          }}
+          onDragEnd={() => {
+            if (controlsRef.current) {
+              controlsRef.current.enabled = true
+            }
+          }}
+        />
+      )}
+
       {/* OrbitControls */}
       <OrbitControls
+        ref={controlsRef}
         makeDefault
         enablePan={false}
         enableZoom={false}

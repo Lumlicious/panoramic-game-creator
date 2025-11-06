@@ -23,12 +23,17 @@ interface PanoramaViewerProps {
   panorama?: PanoramaData
 
   /**
+   * Current node ID for hotspot management
+   */
+  nodeId?: string
+
+  /**
    * Loading state indicator
    */
   isLoading?: boolean
 }
 
-export function PanoramaViewer({ panorama, isLoading = false }: PanoramaViewerProps) {
+export function PanoramaViewer({ panorama, nodeId, isLoading = false }: PanoramaViewerProps) {
   return (
     <div className="relative h-full w-full">
       {/* Loading indicator */}
@@ -57,8 +62,8 @@ export function PanoramaViewer({ panorama, isLoading = false }: PanoramaViewerPr
         {/* Ambient light for proper visibility */}
         <ambientLight intensity={1} />
 
-        {/* Panorama sphere/box with texture */}
-        <PanoramaSphere panorama={panorama} />
+        {/* Panorama sphere/box with texture and hotspots */}
+        <PanoramaSphere panorama={panorama} nodeId={nodeId} />
       </Canvas>
 
       {/* No panorama placeholder */}

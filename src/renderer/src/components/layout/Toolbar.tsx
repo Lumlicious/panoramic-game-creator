@@ -1,7 +1,7 @@
 import { useEditorStore } from '@/stores/editorStore'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { FileIcon, FolderOpenIcon, SaveIcon, PlusIcon } from 'lucide-react'
+import { FileIcon, FolderOpenIcon, SaveIcon, PlusIcon, PenToolIcon } from 'lucide-react'
 
 /**
  * Toolbar Component
@@ -12,7 +12,7 @@ import { FileIcon, FolderOpenIcon, SaveIcon, PlusIcon } from 'lucide-react'
  */
 
 export function Toolbar() {
-  const { viewMode, setViewMode, isDirty } = useEditorStore()
+  const { viewMode, setViewMode, isDirty, drawingMode, setDrawingMode } = useEditorStore()
 
   const handleNew = () => {
     // TODO: Phase 7 - New project logic
@@ -27,6 +27,14 @@ export function Toolbar() {
   const handleSave = () => {
     // TODO: Phase 7 - Save project logic
     console.log('Save project')
+  }
+
+  const handleToggleDrawing = () => {
+    if (drawingMode === 'drawing') {
+      setDrawingMode('select')
+    } else {
+      setDrawingMode('drawing')
+    }
   }
 
   return (
@@ -44,6 +52,19 @@ export function Toolbar() {
         <Button variant="ghost" size="sm" onClick={handleSave} disabled={!isDirty}>
           <SaveIcon className="mr-2 h-4 w-4" />
           Save
+        </Button>
+
+        {/* Separator */}
+        <div className="mx-2 h-6 w-px bg-border" />
+
+        {/* Drawing Mode Toggle */}
+        <Button
+          variant={drawingMode === 'drawing' ? 'default' : 'ghost'}
+          size="sm"
+          onClick={handleToggleDrawing}
+        >
+          <PenToolIcon className="mr-2 h-4 w-4" />
+          {drawingMode === 'drawing' ? 'Drawing...' : 'Draw Hotspot'}
         </Button>
 
         {/* Dirty indicator */}
