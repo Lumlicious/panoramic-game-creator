@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Panoramic Game Creator is a desktop Electron application for creating panoramic point-and-click adventure games. Users create nodes with 360° panoramic images, draw polygonal hotspots on the panoramas that link to other nodes, and visualize the node graph.
 
-**Current Status**: Phase 1 complete. Ready for Phase 2: Basic App Layout.
+**Current Status**: Phases 1-4 complete. Phase 5 (Node Management) in progress - IPC and validation complete, UI implementation next.
 
 ### Completed Phases
 
@@ -18,15 +18,46 @@ Panoramic Game Creator is a desktop Electron application for creating panoramic 
   - Configuration constants defined (all specs in `src/lib/config.ts`)
   - Coordinate conversion utilities scaffolded in `src/lib/coordinates.ts`
 
+- ✅ **Phase 2: Basic App Layout**
+  - Application shell with toolbar, panels, and center area
+  - View switching between Editor and Graph views
+  - Layout components (AppLayout, Toolbar, NodeListPanel, PropertiesPanel)
+  - shadcn components integrated (Button, Card, Tabs, ScrollArea)
+
+- ✅ **Phase 3: Panorama Viewer**
+  - Three.js panoramic viewer with React Three Fiber
+  - Support for equirectangular and cubic panoramas
+  - OrbitControls with proper constraints
+  - Texture loading and disposal
+  - PanoramaSphere component with dynamic geometry switching
+
+- ✅ **Phase 4: Hotspot Drawing System**
+  - Polygon drawing with raycasting on sphere/box
+  - Earcut triangulation for hotspot rendering
+  - Hotspot mesh rendering with fill and outline
+  - Vertex markers and editing
+  - Keyboard shortcuts (Enter, Escape, Delete)
+  - Drawing mode state management
+  - Hover and selection interactions
+
 ### Current Phase
 
-**Phase 2: Basic App Layout** - See **plan.md Phase 2** for complete details.
+**Phase 5: Node Management (In Progress)** - See **plan.md Phase 5** for complete details.
 
-Key deliverables:
-- Application shell with toolbar, panels, and center area
-- View switching between Editor and Graph views
-- Use shadcn components (Button, Card, Tabs, ScrollArea)
-- Basic styling with Tailwind CSS
+✅ **Completed:**
+- Electron IPC infrastructure (`src/main/ipc/fileHandlers.ts`)
+- Image validation utilities (`src/main/utils/imageValidation.ts`)
+  - Equirectangular validation (2:1 aspect, 2048-8192px)
+  - Cubic validation (6 square faces, 1024-4096px)
+- Preload script with type-safe `window.fileAPI`
+- IPC type definitions (`src/shared/types/ipc.ts`)
+- Test UI for validation
+
+**TODO:**
+- Node list panel enhancements (thumbnails, add/delete dialogs)
+- Node properties panel (edit name, assign panorama, hotspot list)
+- Complete image import flow with file copying
+- Toast notifications for errors
 
 ## Essential Reading
 
@@ -391,7 +422,7 @@ If implementation differs from spec, update the spec to reflect reality.
 
 ---
 
-**Status**: Phase 1 ✅ Complete | Phase 2 🔄 Ready to Start
-**Last Updated**: 2025-11-04
-**Current Milestone**: Create application shell (see plan.md Phase 2)
-**Next Phase After Phase 2**: Phase 3 - Panorama Viewer (Three.js sphere rendering)
+**Status**: Phases 1-4 ✅ Complete | Phase 5 🔄 In Progress (IPC/Validation Done, UI Next)
+**Last Updated**: 2025-11-06
+**Current Milestone**: Complete Node Management UI - file import, thumbnails, property editing (see plan.md Phase 5)
+**Next Phase After Phase 5**: Phase 6 - Node Graph Visualization (React Flow)

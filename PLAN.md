@@ -309,10 +309,12 @@ controls.maxPolarAngle = Math.PI;
 - Polygon triangulation algorithm in [TECHNICAL_SPEC.md](./TECHNICAL_SPEC.md#polygon-rendering-on-sphere)
 - Vertex dragging implementation in [TECHNICAL_SPEC.md](./TECHNICAL_SPEC.md#vertex-dragging-implementation)
 
-### Phase 5: Node Management
+### Phase 5: Node Management (In Progress)
 **Goal**: Create and manage panoramic nodes (both equirectangular and cubic)
 
 **Note**: Basic node management (projectStore) already implemented in Phase 3 for testing. This phase focuses on proper UI, IPC, and validation.
+
+**Current Status**: IPC infrastructure and validation complete. UI implementation in progress.
 
 1. **Enhance Node store (Zustand)** - Already exists:
    - ✅ Add node (with UUID)
@@ -321,7 +323,28 @@ controls.maxPolarAngle = Math.PI;
    - ✅ Get node by ID
    - Track dirty state (unsaved changes) - needs integration with editorStore
 
-2. **Node list panel (left sidebar)** - Partially done:
+2. **Electron IPC Setup** - ✅ Complete:
+   - ✅ File operation handlers (`src/main/ipc/fileHandlers.ts`)
+     - `file:pickImage` - Single file picker
+     - `file:pickImages` - Multi-file picker (for cubic)
+     - `file:validateEquirectangular` - Validate equirectangular images
+     - `file:validateCubicFaces` - Validate cubic face images
+     - `file:copyToProject` - Copy files to project directory
+     - `file:generateThumbnail` - Generate 200x100 thumbnails
+   - ✅ Image validation utilities (`src/main/utils/imageValidation.ts`)
+     - Format validation (JPG, PNG, WebP)
+     - Equirectangular: 2:1 aspect ratio (±5%), 2048-8192px width
+     - Cubic: Square faces (1:1), 1024-4096px per side
+     - File size validation (max 50MB)
+     - Thumbnail generation using sharp
+   - ✅ Preload script (`src/preload/index.ts`)
+     - Exposed `window.fileAPI` to renderer
+     - Full TypeScript type definitions (`src/shared/types/ipc.ts`)
+   - ✅ Test UI in Properties Panel
+     - Test equirectangular validation
+     - Test cubic validation (6 faces)
+
+3. **Node list panel (left sidebar)** - TODO:
    - ✅ Display all nodes
    - Add thumbnails (200x100)
    - ✅ Click to select/edit node
@@ -329,7 +352,7 @@ controls.maxPolarAngle = Math.PI;
    - Highlight start node
    - Show node with missing image (error state)
 
-3. **Node properties panel (right sidebar)** - Replace TestCubicLoader:
+4. **Node properties panel (right sidebar)** - TODO (Replace TestCubicLoader):
    - Edit node name (text input)
    - **Assign panorama**: Support both types
      - Equirectangular: Single file picker
@@ -338,17 +361,13 @@ controls.maxPolarAngle = Math.PI;
    - Set as start node (checkbox)
    - Show image dimensions and file size
 
-4. **Image import flow**:
-   - Use Electron IPC to open native file dialog (replace browser picker)
-   - **Validate images**:
-     - Format: JPG, PNG, WebP
-     - **Equirectangular**: Aspect ratio ~2:1 (±5%), 2048-8192px width
-     - **Cubic**: All 6 faces, square aspect ratio, 1024-4096px per face
-     - File size: max 50MB per file
-   - Copy to `assets/panoramas/{nodeId}.{ext}` or `{nodeId}_face.{ext}`
-   - **Generate thumbnail** (200x100 JPEG) using sharp
-   - Store relative paths in project
-   - Show validation errors with toast notifications
+5. **Image import flow** - Partially implemented:
+   - ✅ Electron IPC for native file dialog
+   - ✅ Image validation (equirectangular and cubic)
+   - ✅ Thumbnail generation (sharp in main process)
+   - TODO: Copy to `assets/panoramas/{nodeId}.{ext}` or `{nodeId}_face.{ext}`
+   - TODO: Update projectStore with relative paths
+   - TODO: Show validation errors with toast notifications
 
 **Validation Example**:
 ```typescript

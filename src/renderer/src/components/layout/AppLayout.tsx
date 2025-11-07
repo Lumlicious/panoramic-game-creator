@@ -4,6 +4,7 @@ import { Toolbar } from './Toolbar'
 import { NodeListPanel } from './NodeListPanel'
 import { PropertiesPanel } from './PropertiesPanel'
 import { PanoramaViewer } from '@/components/panorama/PanoramaViewer'
+import { ImportTest } from '@/components/test/ImportTest'
 
 /**
  * AppLayout Component
@@ -41,7 +42,7 @@ export function AppLayout() {
             <PanoramaViewer panorama={panorama} nodeId={selectedNodeId || undefined} />
           ) : (
             // Node Graph View (placeholder for Phase 6)
-            <div className="flex flex-1 items-center justify-center">
+            <div className="flex flex-1 items-center justify-center flex-col gap-8">
               <div className="text-center">
                 <h2 className="text-2xl font-semibold text-muted-foreground">Node Graph</h2>
                 <p className="mt-2 text-sm text-muted-foreground">
@@ -49,6 +50,8 @@ export function AppLayout() {
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground">Coming in Phase 6</p>
               </div>
+              {/* Temporary test component */}
+              <ImportTest />
             </div>
           )}
         </main>

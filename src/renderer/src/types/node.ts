@@ -13,7 +13,13 @@ export interface PanoramaData {
   type: 'equirectangular' | 'cubic'
 
   // For equirectangular
-  filePath?: string // Relative path within project
+  filePath?: string // Relative path within project (e.g., "assets/panoramas/node-id.jpg")
+  thumbnailPath?: string // Relative path to thumbnail (e.g., "assets/thumbnails/node-id.jpg")
+  metadata?: {
+    width: number
+    height: number
+    format: string
+  }
 
   // For cubic (future)
   faces?: {

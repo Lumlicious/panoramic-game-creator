@@ -1,8 +1,31 @@
-import { contextBridge } from 'electron'
+import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
+import type { FileAPI, ProjectAPI, ProjectData } from '../shared/types/ipc'
 
 // Custom APIs for renderer
 const api = {}
+
+// File API - exposes file operations to renderer
+const fileAPI: FileAPI = {
+  pickImage: () => ipcRenderer.invoke('file:pickImage'),
+  pickImages: () => ipcRenderer.invoke('file:pickImages'),
+  validateEquirectangular: (filePath: string) =>
+    ipcRenderer.invoke('file:validateEquirectangular', filePath),
+  validateCubicFaces: (filePaths: string[]) =>
+    ipcRenderer.invoke('file:validateCubicFaces', filePaths),
+  copyToProject: (sourcePath: string, projectPath: string, destRelativePath: string) =>
+    ipcRenderer.invoke('file:copyToProject', sourcePath, projectPath, destRelativePath),
+  generateThumbnail: (sourcePath: string, outputPath: string) =>
+    ipcRenderer.invoke('file:generateThumbnail', sourcePath, outputPath)
+}
+
+// Project API - exposes project lifecycle operations to renderer
+const projectAPI: ProjectAPI = {
+  newProject: () => ipcRenderer.invoke('project:new'),
+  saveProject: (projectPath: string, projectData: ProjectData) =>
+    ipcRenderer.invoke('project:save', projectPath, projectData),
+  openProject: () => ipcRenderer.invoke('project:open')
+}
 
 // Use `contextBridge` APIs to expose Electron APIs to
 // renderer only if context isolation is enabled, otherwise
@@ -11,6 +34,8 @@ if (process.contextIsolated) {
   try {
     contextBridge.exposeInMainWorld('electron', electronAPI)
     contextBridge.exposeInMainWorld('api', api)
+    contextBridge.exposeInMainWorld('fileAPI', fileAPI)
+    contextBridge.exposeInMainWorld('projectAPI', projectAPI)
   } catch (error) {
     console.error(error)
   }
@@ -19,4 +44,8 @@ if (process.contextIsolated) {
   window.electron = electronAPI
   // @ts-ignore (define in dts)
   window.api = api
+  // @ts-ignore (define in dts)
+  window.fileAPI = fileAPI
+  // @ts-ignore (define in dts)
+  window.projectAPI = projectAPI
 }
