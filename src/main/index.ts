@@ -1,5 +1,6 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, protocol } from 'electron'
 import { join } from 'path'
+import { readFile } from 'fs/promises'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { registerFileHandlers } from './ipc/fileHandlers'
@@ -43,6 +44,32 @@ function createWindow(): void {
 app.whenReady().then(() => {
   // Set app user model id for windows
   electronApp.setAppUserModelId('com.electron')
+
+  // Register custom protocol for loading local files
+  // This allows the renderer to load images with local:// URLs
+  protocol.handle('local', async (request) => {
+    const filePath = decodeURIComponent(request.url.slice('local://'.length))
+    try {
+      const data = await readFile(filePath)
+      // Determine MIME type based on file extension
+      const ext = filePath.split('.').pop()?.toLowerCase()
+      const mimeTypes: Record<string, string> = {
+        jpg: 'image/jpeg',
+        jpeg: 'image/jpeg',
+        png: 'image/png',
+        webp: 'image/webp',
+        gif: 'image/gif'
+      }
+      const mimeType = mimeTypes[ext || ''] || 'application/octet-stream'
+
+      return new Response(data, {
+        headers: { 'Content-Type': mimeType }
+      })
+    } catch (error) {
+      console.error('Failed to load file:', filePath, error)
+      return new Response('File not found', { status: 404 })
+    }
+  })
 
   // Default open or close DevTools by F12 in development
   // and ignore CommandOrControl + R in production.

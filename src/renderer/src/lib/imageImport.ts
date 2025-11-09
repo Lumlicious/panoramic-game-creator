@@ -162,15 +162,50 @@ async function importCubicPanorama(
   // All faces should have same dimensions
   const faceSize = firstValid.metadata.width
 
-  // Step 3: Copy all 6 faces to project directory
-  // User must select files in order: front, back, left, right, top, bottom
-  // Or we could show a dialog to let them assign each face
+  // Step 3: Detect face names from filenames and copy to project
+  // Look for keywords in filenames: front, back, left, right, top, bottom
   const faceNames = ['front', 'back', 'left', 'right', 'top', 'bottom'] as const
   const facePaths: Record<string, string> = {}
 
-  for (let i = 0; i < 6; i++) {
-    const faceName = faceNames[i]
-    const file = files[i]
+  // Map filenames to face names
+  const fileToFace = new Map<string, (typeof faceNames)[number]>()
+
+  for (const file of files) {
+    const lowerName = file.fileName.toLowerCase()
+
+    // Try to detect face name from filename
+    let detectedFace: (typeof faceNames)[number] | null = null
+
+    for (const faceName of faceNames) {
+      if (lowerName.includes(faceName)) {
+        if (fileToFace.has(file.filePath)) {
+          throw new Error(`Ambiguous filename: "${file.fileName}" matches multiple face names`)
+        }
+        detectedFace = faceName
+        break
+      }
+    }
+
+    if (!detectedFace) {
+      throw new Error(
+        `Could not detect face name from filename: "${file.fileName}". ` +
+          `Filenames must contain one of: front, back, left, right, top, bottom`
+      )
+    }
+
+    fileToFace.set(file.filePath, detectedFace)
+  }
+
+  // Check we have all 6 faces
+  const detectedFaces = new Set(fileToFace.values())
+  const missingFaces = faceNames.filter((name) => !detectedFaces.has(name))
+  if (missingFaces.length > 0) {
+    throw new Error(`Missing face images: ${missingFaces.join(', ')}`)
+  }
+
+  // Copy files to project with detected face names
+  for (const file of files) {
+    const faceName = fileToFace.get(file.filePath)!
     const sourceExt = extname(file.fileName)
     const relPath = `assets/panoramas/${nodeId}_${faceName}${sourceExt}`
 
@@ -186,7 +221,13 @@ async function importCubicPanorama(
   const thumbnailRelPath = `assets/thumbnails/${nodeId}.jpg`
   const thumbnailAbsPath = `${projectPath}/${thumbnailRelPath}`
 
-  const thumbResult = await fileAPI.generateThumbnail(files[0].filePath, thumbnailAbsPath)
+  // Find the file that was mapped to "front" face
+  const frontFile = files.find((f) => fileToFace.get(f.filePath) === 'front')
+  if (!frontFile) {
+    throw new Error('Front face not found for thumbnail generation')
+  }
+
+  const thumbResult = await fileAPI.generateThumbnail(frontFile.filePath, thumbnailAbsPath)
   if (!thumbResult.success) {
     console.warn('Failed to generate thumbnail:', thumbResult.error)
   }
@@ -247,20 +288,23 @@ export async function replacePanoramaForNode(
 }
 
 /**
- * Generate file:// URL for loading textures in Three.js
+ * Generate local:// URL for loading textures in Three.js
  *
- * Converts relative project path to absolute file:// URL for texture loading.
+ * Converts relative project path to absolute local:// URL for texture loading.
+ * Uses Electron's custom protocol handler registered in main process.
  * Must be called at runtime to resolve against current project path.
  */
 export function getPanoramaUrl(projectPath: string, relativePath: string): string {
   const absolutePath = `${projectPath}/${relativePath}`
-  return `file://${absolutePath}`
+  return `local://${absolutePath}`
 }
 
 /**
  * Get thumbnail URL for display in UI
+ *
+ * Uses Electron's custom protocol handler registered in main process.
  */
 export function getThumbnailUrl(projectPath: string, relativePath: string): string {
   const absolutePath = `${projectPath}/${relativePath}`
-  return `file://${absolutePath}`
+  return `local://${absolutePath}`
 }
