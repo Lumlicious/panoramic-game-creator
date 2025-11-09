@@ -34,110 +34,95 @@ The app started importing images and saving to the root directory because it had
 
 ## Linear Implementation Steps
 
-### Step 1: Project Store Enhancements
+### ✅ Step 1: Project Store Enhancements (COMPLETE - 2025-11-08)
 
 **File**: `src/renderer/src/stores/projectStore.ts`
 
-**Add**:
-```typescript
-// Project lifecycle state
-projectPath: string | null        // Absolute path to .pgc directory
-projectId: string | null
-projectName: string | null
-created: string | null
-modified: string | null
-settings: ProjectSettings
+**Status**: Already implemented! The store has:
+- ✅ `projectPath`, `projectId`, `projectName`, `created`, `modified`, `settings` state
+- ✅ `newProject()` - Calls window.projectAPI.newProject(), initializes store (lines 324-355)
+- ✅ `openProject()` - Calls window.projectAPI.openProject(), loads data (lines 357-387)
+- ✅ `saveProject()` - Calls window.projectAPI.saveProject(), updates modified timestamp (lines 389-431)
+- ✅ `closeProject()` - Resets store to initial state (lines 433-436)
+- ✅ Node operations already check `projectPath` before file operations (lines 126-132, 196-200)
 
-// Actions
-newProject: async () => Promise<boolean>
-openProject: async () => Promise<boolean>
-saveProject: async () => Promise<boolean>
-closeProject: () => void
-```
+**Note**: The `isDirty` flag also already exists in editorStore (line 27).
 
-**Implementation**:
-- Call window.projectAPI.newProject() - creates directory + initial JSON
-- Call window.projectAPI.openProject() - loads existing JSON
-- Call window.projectAPI.saveProject() - saves current state
+No changes needed for this step.
 
 ---
 
-### Step 2: Welcome Screen (Entry Point)
+### ✅ Step 2: Welcome Screen (Entry Point) (COMPLETE - 2025-11-08)
 
 **File**: `src/renderer/src/components/WelcomeScreen.tsx` (NEW)
 
-**UI**:
-```
-┌──────────────────────────────┐
-│  Panoramic Game Creator      │
-│                               │
-│  [New Project]                │
-│  [Open Project]               │
-│                               │
-│  Recent Projects:             │
-│  - MyGame.pgc                 │
-│  - Adventure.pgc              │
-└──────────────────────────────┘
-```
+**Status**: Fully implemented with:
+- ✅ Full-screen centered layout with app title and tagline
+- ✅ Two clickable Card components (New Project, Open Project)
+- ✅ Integration with `useProjectStore` hooks
+- ✅ Async handlers with error logging
+- ✅ Follows shadcn/ui and Tailwind patterns
 
-**Logic**:
-```typescript
-const handleNewProject = async () => {
-  const success = await projectStore.newProject()
-  if (success) {
-    // App automatically transitions to editor
-  }
-}
-
-const handleOpenProject = async () => {
-  const success = await projectStore.openProject()
-  if (success) {
-    // App automatically transitions to editor
-  }
-}
-```
+**Notes**:
+- Recent Projects section deferred (requires electron-store setup)
+- Error notifications show in console only (toast notifications to be added later)
 
 ---
 
-### Step 3: App Entry Logic
+### ✅ Step 3: App Entry Logic (COMPLETE - 2025-11-08)
 
 **File**: `src/renderer/src/App.tsx`
 
-**Update**:
+**Status**: Fully implemented with conditional rendering:
+- ✅ Shows `<WelcomeScreen />` when `projectPath` is null
+- ✅ Shows `<AppLayout />` when project is loaded
+- ✅ Automatic state-driven navigation based on projectStore
+
+**Implementation**:
 ```typescript
 function App() {
   const projectPath = useProjectStore(state => state.projectPath)
 
-  // No project open - show welcome screen
   if (!projectPath) {
     return <WelcomeScreen />
   }
 
-  // Project open - show editor
   return <AppLayout />
 }
 ```
 
 ---
 
-### Step 4: Toolbar Updates
+### ✅ Step 4: Toolbar Updates (COMPLETE - 2025-11-08)
 
 **File**: `src/renderer/src/components/layout/Toolbar.tsx`
 
-**Add**:
-- Project name display
-- Save button (Cmd/Ctrl+S)
-- Dirty indicator (*)
-- New Project button (with unsaved changes check)
-- Open Project button (with unsaved changes check)
+**Status**: Fully implemented with:
+- ✅ ProjectStore integration (newProject, openProject, saveProject)
+- ✅ Real file operation handlers replacing stubs
+- ✅ Unsaved changes AlertDialog with 3 options (Save, Don't Save, Cancel)
+- ✅ Keyboard shortcuts (Cmd/Ctrl+S, N, O) with platform detection
+- ✅ Project name display from store (replaces "Untitled Project")
+- ✅ Dirty indicator (*) shows after project name when unsaved changes exist
+- ✅ All handlers use `useCallback` with proper dependencies
+- ✅ Type-safe throughout, production-ready
 
-**UI**:
+**Additional Fix** (2025-11-08):
+- Fixed Open Project on macOS: Added `treatPackageAsDirectory` to dialog properties
+- File: `src/main/ipc/projectHandlers.ts` line 198
+
+**UI Implemented**:
 ```
 ┌─────────────────────────────────────────────┐
-│ [New] [Open] [Save*]  MyProject.pgc  [View] │
+│ [New] [Open] [Save]  MyProject.pgc *  [View]│
 └─────────────────────────────────────────────┘
           ↑ Shows * when unsaved changes
 ```
+
+**Future Enhancements** (optional, not blocking):
+- Toast notifications for errors (currently console only)
+- Concurrent save protection (loading states)
+- Extract keyboard shortcuts to reusable hook
 
 ---
 

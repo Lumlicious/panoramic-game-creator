@@ -195,7 +195,7 @@ async function handleOpenProject(): Promise<IPCResponse<{ projectPath: string; d
     const result = await dialog.showOpenDialog({
       title: 'Open Project',
       buttonLabel: 'Open',
-      properties: ['openDirectory'],
+      properties: ['openDirectory', 'treatPackageAsDirectory'],
       filters: [{ name: 'Panoramic Game Creator Project', extensions: ['pgc'] }]
     })
 
