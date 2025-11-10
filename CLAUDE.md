@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Panoramic Game Creator is a desktop Electron application for creating panoramic point-and-click adventure games. Users create nodes with 360° panoramic images, draw polygonal hotspots on the panoramas that link to other nodes, and visualize the node graph.
 
-**Current Status**: Phases 1-4 complete. Phase 5 (Node Management) in progress - IPC and validation complete, UI implementation next.
+**Current Status**: Phases 1-5.5 complete! ✅ Full node management, hotspot drawing, and target assignment working. Ready for Phase 6 (Node Graph).
 
 ### Completed Phases
 
@@ -40,24 +40,34 @@ Panoramic Game Creator is a desktop Electron application for creating panoramic 
   - Drawing mode state management
   - Hover and selection interactions
 
-### Current Phase
+- ✅ **Phase 5: Node Management**
+  - Project lifecycle (New/Open/Save with .pgc directory bundles)
+  - Add Node dialog with panorama type selection
+  - Image import flow with validation and thumbnail generation
+  - Node list panel with thumbnails
+  - Panorama viewer integration with runtime path resolution
+  - IPC infrastructure complete (`fileHandlers.ts`, `projectHandlers.ts`)
+  - Image validation for equirectangular and cubic panoramas
 
-**Phase 5: Node Management (In Progress)** - See **plan.md Phase 5** for complete details.
+- ✅ **Phase 5.5: Hotspot Target Assignment** (CRITICAL addition - 2025-11-09)
+  - **Hotspot Properties Card**: Edit name, assign target node, delete hotspot
+  - **Target Node Dropdown**: Select which node each hotspot links to
+  - **Enhanced Node Properties**: Edit name, set start node, view linked hotspots
+  - **Interactive Hotspots List**: Click to select, shows target assignments
+  - Complete CRUD operations for nodes and hotspots
+  - Enables Phase 6 graph connections (edges require targetNodeId)
 
-✅ **Completed:**
-- Electron IPC infrastructure (`src/main/ipc/fileHandlers.ts`)
-- Image validation utilities (`src/main/utils/imageValidation.ts`)
-  - Equirectangular validation (2:1 aspect, 2048-8192px)
-  - Cubic validation (6 square faces, 1024-4096px)
-- Preload script with type-safe `window.fileAPI`
-- IPC type definitions (`src/shared/types/ipc.ts`)
-- Test UI for validation
+### Next Phase
 
-**TODO:**
-- Node list panel enhancements (thumbnails, add/delete dialogs)
-- Node properties panel (edit name, assign panorama, hotspot list)
-- Complete image import flow with file copying
-- Toast notifications for errors
+**Phase 6: Node Graph Visualization (Ready to Start)** - See **plan.md Phase 6** for complete details.
+
+**Goals:**
+- React Flow canvas with custom node cards
+- Visual representation of all nodes with thumbnails
+- Edges showing hotspot connections (source → target)
+- Drag-and-drop node positioning with persistence
+- Selection sync between Graph and Editor views
+- Start node visual indicator
 
 ## Essential Reading
 
@@ -422,7 +432,7 @@ If implementation differs from spec, update the spec to reflect reality.
 
 ---
 
-**Status**: Phases 1-4 ✅ Complete | Phase 5 🔄 In Progress (IPC/Validation Done, UI Next)
-**Last Updated**: 2025-11-06
-**Current Milestone**: Complete Node Management UI - file import, thumbnails, property editing (see plan.md Phase 5)
-**Next Phase After Phase 5**: Phase 6 - Node Graph Visualization (React Flow)
+**Status**: Phases 1-5.5 ✅ Complete | Ready for Phase 6 (Node Graph) 🎯
+**Last Updated**: 2025-11-09
+**Current Milestone**: Phase 5.5 complete - Hotspot target assignment enables graph connections
+**Next Phase**: Phase 6 - Node Graph Visualization with React Flow (see plan.md Phase 6)

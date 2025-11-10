@@ -1,7 +1,7 @@
 # Next Steps - Linear Implementation Order
 
-**Date**: 2025-11-08
-**Current Status**: Phases 1-5 complete! ✅ Node Management fully functional
+**Date**: 2025-11-09
+**Current Status**: Phases 1-5.5 complete! ✅ Node Management + Hotspot Target Assignment fully functional
 
 ---
 
@@ -343,224 +343,101 @@ addNode: async (name: string, panoramaType: 'equirectangular' | 'cubic') => {
 
 ## Phase 5 Complete! 🎉
 
-**Next up**: Phase 5.5 - Hotspot Target Assignment (CRITICAL before Phase 6)
-
 ---
 
-## Phase 5.5: Properties Panel Polish & Hotspot Target Assignment (NEXT)
+## ✅ Phase 5.5: Properties Panel Polish & Hotspot Target Assignment (COMPLETE - 2025-11-09)
 
-**Status**: Planned, not started
-**Priority**: CRITICAL - Phase 6 (Node Graph) will be useless without this
-**Estimated Time**: 3 hours
+**Status**: ✅ COMPLETE
+**Priority**: CRITICAL - Phase 6 (Node Graph) now has meaningful connections
+**Time Taken**: ~3 hours
+**Commit**: eac169a
 
-### Why This Is Critical
+### What Was Implemented
 
-**The Problem**: Hotspots currently have empty `targetNodeId` (line 275 in projectStore.ts)
-- Users can draw hotspots but cannot assign where they link to
-- Phase 6 graph will show nodes but NO edges (edges require targetNodeId)
-- MVP requirement: "User can link hotspots to target nodes" ✅ (plan.md line 686)
-- This feature was implied but never explicitly planned - fell through the cracks!
+**All 5 tasks completed successfully:**
 
-**The Solution**: Add target assignment UI to Properties Panel when hotspot is selected
-
-### Implementation Tasks
-
-#### Task 1: Install Missing Components (5 min)
+#### ✅ Task 1: Install Missing Components (5 min)
 ```bash
 npx shadcn@latest add select checkbox
 ```
 
-**Validation**: Components install without errors
+- ✅ Select and Checkbox components installed
+- ✅ Added to `src/renderer/src/components/ui/`
+
+#### ✅ Task 2: Clean Up PropertiesPanel (15 min)
+- ✅ Removed all IPC test code (lines 24-104)
+- ✅ Removed TestCubicLoader import and usage
+- ✅ Added conditional rendering for node/hotspot/none states
+- ✅ Panel now updates dynamically based on selection
+
+- ✅ **Editable hotspot name** with Input component (blur/Enter to save)
+- ✅ **Target Node Dropdown** - THE CRITICAL FEATURE!
+  - Shows all nodes except self (prevents circular links)
+  - Updates `targetNodeId` in store
+  - "No target" option to clear assignment
+- ✅ Polygon info display (vertices, enabled state)
+- ✅ Delete hotspot button with Trash icon
+
+#### ✅ Task 4: Enhance Node Properties Card (30 min)
+- ✅ **Editable node name** with Input component
+- ✅ **"Set as Start Node" Checkbox** - marks game entry point
+- ✅ Panorama type display (equirectangular/cubic)
+- ✅ **Interactive hotspots list**:
+  - Shows all hotspots with names
+  - Shows target node for each hotspot ("→ Node Name")
+  - Click to select hotspot in viewer
+  - Highlights currently selected hotspot
+
+#### ✅ Task 5: Wire Up Delete Handler (10 min)
+- ✅ Delete button calls `removeHotspot()` from projectStore
+- ✅ Clears selection after deletion
+- ✅ Sets dirty flag
+- ✅ Works alongside existing keyboard shortcut (Delete/Backspace)
+
+### Bonus Fixes
+- ✅ Fixed pre-existing TypeScript error in HotspotDrawing.tsx (line geometry)
+- ✅ All type checks passing
 
 ---
 
-#### Task 2: Clean Up PropertiesPanel (15 min)
-**File**: `src/renderer/src/components/layout/PropertiesPanel.tsx`
+## 🎉 Phase 5.5 Complete - Ready for Phase 6!
 
-**Remove**:
-- Lines 24-104: IPC test code (handleTestEquirectangular, handleTestCubic)
-- Line 6: TestCubicLoader import
-- Line 124: `<TestCubicLoader />` usage
-
-**Add conditional rendering logic**:
-```typescript
-const selectedHotspotId = useEditorStore(state => state.selectedHotspotId)
-const selectedNodeId = useEditorStore(state => state.selectedNodeId)
-
-// Show hotspot properties if hotspot selected
-// Else show node properties if node selected
-// Else show placeholder
-```
-
-**Validation**: Panel updates when switching between node/hotspot selection
+**Achievements:**
+- ✅ Users can now create fully navigable panoramic games
+- ✅ Hotspots can be linked to target nodes (MVP requirement met!)
+- ✅ Phase 6 will show meaningful connections (edges between nodes)
+- ✅ Complete CRUD operations for nodes and hotspots
+- ✅ Type-safe implementation with all checks passing
 
 ---
 
-#### Task 3: Create Hotspot Properties Card (60 min)
-**File**: Same as Task 2
+## Phase 6: Node Graph Visualization (NEXT)
 
-**UI Components**:
-```typescript
-<Card className="p-4">
-  <h3>Hotspot Properties</h3>
+**Status**: Ready to begin
+**Priority**: HIGH - Visualize game structure and navigation flow
+**Estimated Time**: 4-6 hours
+**Dependencies**: React Flow (already installed ✅)
 
-  {/* Editable Name */}
-  <Input
-    value={hotspot.name}
-    onChange={(e) => updateHotspot(nodeId, hotspot.id, { name: e.target.value })}
-  />
+### Overview
 
-  {/* Target Node Dropdown - THE CRITICAL FEATURE */}
-  <Select
-    value={hotspot.targetNodeId || ''}
-    onValueChange={(value) => {
-      updateHotspot(nodeId, hotspot.id, { targetNodeId: value })
-      setDirty(true)
-    }}
-  >
-    <SelectTrigger>
-      <SelectValue placeholder="Select target node..." />
-    </SelectTrigger>
-    <SelectContent>
-      <SelectItem value="">(None)</SelectItem>
-      {allNodes.map(node => (
-        <SelectItem key={node.id} value={node.id}>
-          {node.name}
-        </SelectItem>
-      ))}
-    </SelectContent>
-  </Select>
+Create an interactive node graph using React Flow that:
+- Shows all nodes as cards with thumbnails
+- Shows edges (connections) based on hotspot `targetNodeId` assignments
+- Allows dragging nodes to position them
+- Persists layout in `node.position` field
+- Syncs with Editor view (selecting node in graph loads it in Editor)
 
-  {/* Polygon Info (read-only) */}
-  <p>Vertices: {hotspot.polygon.length}</p>
-  <p>Enabled: {hotspot.enabled ? 'Yes' : 'No'}</p>
+### Key Features to Implement
 
-  {/* Delete Button */}
-  <Button variant="destructive" onClick={handleDeleteHotspot}>
-    Delete Hotspot
-  </Button>
-</Card>
-```
+1. **GraphView Component** - React Flow canvas with custom node types
+2. **Custom Node Card** - Shows thumbnail, name, hotspot count
+3. **Edge Generation** - Parse all hotspots to create edges
+4. **Layout Persistence** - Save/load node positions in project.json
+5. **Selection Sync** - Clicking node in graph selects it in Editor view
+6. **Start Node Indicator** - Highlight the start node visually
 
-**Store Integration**:
-```typescript
-const updateHotspot = useProjectStore(state => state.updateHotspot)
-const removeHotspot = useProjectStore(state => state.removeHotspot)
-const setDirty = useEditorStore(state => state.setDirty)
-```
+### Implementation Tasks
 
-**Validation**:
-- Dropdown shows all nodes in project
-- Selecting target updates `hotspot.targetNodeId`
-- Changes trigger dirty flag
+See `plan.md Phase 6` for detailed implementation steps.
 
 ---
-
-#### Task 4: Enhance Node Properties Card (30 min)
-**File**: Same as Task 2
-
-**Add to existing node properties (lines 106-122)**:
-```typescript
-<Card className="p-4">
-  <h3>Node Properties</h3>
-
-  {/* Editable Name (currently read-only) */}
-  <Input
-    value={node.name}
-    onChange={(e) => updateNode(node.id, { name: e.target.value })}
-  />
-
-  {/* Panorama Type - Read-only */}
-  <p>Type: {node.panorama.type}</p>
-
-  {/* Set as Start Node */}
-  <div className="flex items-center space-x-2">
-    <Checkbox
-      checked={startNodeId === node.id}
-      onCheckedChange={(checked) => setStartNode(checked ? node.id : null)}
-    />
-    <label>Set as Start Node</label>
-  </div>
-
-  {/* Hotspots List - Click to select */}
-  <div>
-    <label>Hotspots ({node.hotspots.length})</label>
-    <ScrollArea className="h-32">
-      {node.hotspots.map(hotspot => (
-        <div
-          onClick={() => setSelectedHotspotId(hotspot.id)}
-          className="cursor-pointer hover:bg-accent"
-        >
-          {hotspot.name}
-          {hotspot.targetNodeId && (
-            <span> → {getNode(hotspot.targetNodeId)?.name}</span>
-          )}
-        </div>
-      ))}
-    </ScrollArea>
-  </div>
-</Card>
-```
-
-**Validation**:
-- Click hotspot in list → selects it in viewer
-- Set as Start Node checkbox works
-
----
-
-#### Task 5: Wire Up Delete Handler (10 min)
-**File**: Same as Task 2
-
-```typescript
-const handleDeleteHotspot = () => {
-  if (!selectedNodeId || !selectedHotspotId) return
-
-  removeHotspot(selectedNodeId, selectedHotspotId)
-  setSelectedHotspotId(null) // Deselect after delete
-  setDirty(true)
-}
-```
-
-**Note**: Keyboard shortcut (Delete/Backspace) already works in PanoramaSphere.tsx - this adds UI button for discoverability.
-
-**Validation**: Hotspot removed from both viewer and store
-
----
-
-### User Flow (After Implementation)
-
-1. Select node from left panel → Panorama loads
-2. Draw hotspot on panorama → Hotspot created with empty targetNodeId
-3. Hotspot auto-selected → Properties panel shows hotspot card
-4. User sees "Links To: (None)" dropdown with all nodes
-5. User selects target node → targetNodeId updated, dirty flag set
-6. User saves project → Target link persisted
-7. **Phase 6 graph view** → Shows edge from source to target! 🎉
-
-### Testing Checklist
-
-After implementation:
-
-- [ ] Select node → Properties shows node properties
-- [ ] Draw hotspot → Properties switches to hotspot properties
-- [ ] Hotspot name editable → Updates store
-- [ ] Target dropdown shows all nodes
-- [ ] Select target → targetNodeId updated
-- [ ] Dirty flag set on changes
-- [ ] Save project → Targets persist in project.json
-- [ ] Reload project → Targets preserved
-- [ ] Delete hotspot button works
-- [ ] Click hotspot in node list → Selects in viewer
-- [ ] Set as Start Node checkbox → Updates startNodeId
-- [ ] Full workflow: draw → assign → save → load → verify
-
----
-
-## After Phase 5.5: Ready for Phase 6
-
-Once hotspot target assignment is complete:
-- ✅ Users can create navigable panoramic games
-- ✅ Phase 6 graph will show meaningful connections (edges between nodes)
-- ✅ MVP success criteria met: "User can link hotspots to target nodes"
-
-**Then proceed to Phase 6: Node Graph Visualization** with React Flow!
