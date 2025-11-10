@@ -78,7 +78,7 @@ function PointLines({ points }: { points: THREE.Vector3[] }) {
   }, [geometry])
 
   return (
-    <line geometry={geometry}>
+    <primitive object={new THREE.Line(geometry)}>
       <lineBasicMaterial
         color="#00ff00"
         linewidth={2}
@@ -86,6 +86,6 @@ function PointLines({ points }: { points: THREE.Vector3[] }) {
         transparent
         depthTest={false}
       />
-    </line>
+    </primitive>
   )
 }
