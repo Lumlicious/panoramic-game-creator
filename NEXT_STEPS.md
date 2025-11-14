@@ -1,7 +1,7 @@
 # Next Steps - Linear Implementation Order
 
-**Date**: 2025-11-09
-**Current Status**: Phases 1-5.5 complete! ✅ Node Management + Hotspot Target Assignment fully functional
+**Date**: 2025-11-13
+**Current Status**: Phases 1-6 complete! ✅ Full node graph visualization with React Flow working. Ready for Phase 7 (Project Files & Robustness).
 
 ---
 
@@ -411,33 +411,107 @@ npx shadcn@latest add select checkbox
 
 ---
 
-## Phase 6: Node Graph Visualization (NEXT)
+## ✅ Phase 6: Node Graph Visualization (COMPLETE - 2025-11-13)
+
+**Status**: ✅ COMPLETE
+**Time Taken**: ~6 hours
+**Commit**: d697fed
+
+### What Was Implemented
+
+**All core features successfully delivered:**
+
+#### ✅ React Flow Integration
+- Full interactive graph canvas with pan/zoom controls
+- Custom node cards with thumbnails and metadata
+- Smooth bezier edge connections (right handle → left handle)
+- Minimap with color-coded nodes
+
+#### ✅ Visual Features
+- **Node Cards**: Display thumbnails, names, connection counts (in/out)
+- **Start Node Badge**: Green border indicator for game entry point
+- **Orphaned Nodes Badge**: Orange badge for nodes with no incoming connections
+- **Edge Styling**: Animated green edges from start node, gray for others
+- **Empty State**: User-friendly message when no nodes exist
+
+#### ✅ Interaction & Sync
+- Drag-and-drop node positioning with automatic persistence
+- Click node in graph → switches to Editor view and selects node
+- Graph view state management in editorStore
+- Fit view button to center all nodes
+
+#### ✅ Type-Safe Implementation
+- New types: `GraphNode`, `GraphEdge` in `graph.ts`
+- Graph converters: Transform project data to React Flow format
+- Graph selectors: Derive edges from hotspot connections
+- Graph utilities: Connection counting, orphan detection
+- Graph validation: Ensure data integrity
+
+#### ✅ New Dependencies
+- `reactflow@11.11.4` - Graph visualization library
+- `react-use@17.5.1` - Hooks including useDebounce
+
+### Files Created
+- `src/renderer/src/components/graph/GraphView.tsx`
+- `src/renderer/src/components/graph/CustomNodeCard.tsx`
+- `src/renderer/src/lib/graphConverters.ts`
+- `src/renderer/src/lib/graphSelectors.ts`
+- `src/renderer/src/lib/graphUtils.ts`
+- `src/renderer/src/lib/graphValidation.ts`
+- `src/renderer/src/types/graph.ts`
+- shadcn/ui components: badge, toast, toaster
+
+---
+
+## 🎯 Phase 7: Project Files & Robustness (NEXT)
 
 **Status**: Ready to begin
-**Priority**: HIGH - Visualize game structure and navigation flow
-**Estimated Time**: 4-6 hours
-**Dependencies**: React Flow (already installed ✅)
+**Priority**: CRITICAL - Production readiness
+**Estimated Time**: 8-10 hours
+**Dependencies**: All core features complete
 
 ### Overview
 
-Create an interactive node graph using React Flow that:
-- Shows all nodes as cards with thumbnails
-- Shows edges (connections) based on hotspot `targetNodeId` assignments
-- Allows dragging nodes to position them
-- Persists layout in `node.position` field
-- Syncs with Editor view (selecting node in graph loads it in Editor)
+From `plan.md Phase 7`, we need to implement:
 
-### Key Features to Implement
+1. **Enhanced Error Handling**
+   - Comprehensive error handling for all file operations
+   - User-friendly error messages with recovery options
+   - Graceful degradation for non-critical errors
 
-1. **GraphView Component** - React Flow canvas with custom node types
-2. **Custom Node Card** - Shows thumbnail, name, hotspot count
-3. **Edge Generation** - Parse all hotspots to create edges
-4. **Layout Persistence** - Save/load node positions in project.json
-5. **Selection Sync** - Clicking node in graph selects it in Editor view
-6. **Start Node Indicator** - Highlight the start node visually
+2. **Project Validation on Load**
+   - Check format version compatibility
+   - Verify all referenced images exist
+   - Show warnings for missing files but allow opening
+   - Detect and report project corruption
+
+3. **Auto-Save System**
+   - Auto-save with configurable interval
+   - Dirty state tracking (already exists)
+   - Visual feedback during save operations
+   - Prevent data loss on crashes
+
+4. **Recent Projects List**
+   - Track recently opened projects (electron-store)
+   - Show in welcome screen
+   - File watching to detect external changes
+   - Remove deleted projects from list
+
+5. **Game Export**
+   - Export as standalone HTML bundle
+   - Package all assets and player runtime
+   - Optimize for web delivery
+   - Test exported games
 
 ### Implementation Tasks
 
-See `plan.md Phase 6` for detailed implementation steps.
+See `plan.md Phase 7` for detailed step-by-step implementation.
+
+### Key Challenges
+
+- **File validation**: Need to check all panorama/thumbnail paths on load
+- **Auto-save**: Must handle concurrent saves and prevent corruption
+- **Export**: Need to create minimal player runtime (subset of editor)
+- **Error recovery**: Emergency save to Documents folder on crash
 
 ---
