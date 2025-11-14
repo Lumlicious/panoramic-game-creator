@@ -1,5 +1,6 @@
 import { AppLayout } from '@/components/layout/AppLayout'
 import { WelcomeScreen } from '@/components/WelcomeScreen'
+import { Toaster } from '@/components/ui/toaster'
 import { useProjectStore } from '@/stores/projectStore'
 
 /**
@@ -17,13 +18,12 @@ import { useProjectStore } from '@/stores/projectStore'
 function App(): JSX.Element {
   const projectPath = useProjectStore((state) => state.projectPath)
 
-  // No project open - show welcome screen
-  if (!projectPath) {
-    return <WelcomeScreen />
-  }
-
-  // Project open - show editor
-  return <AppLayout />
+  return (
+    <>
+      {!projectPath ? <WelcomeScreen /> : <AppLayout />}
+      <Toaster />
+    </>
+  )
 }
 
 export default App

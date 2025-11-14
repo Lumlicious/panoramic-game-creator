@@ -14,6 +14,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { FileIcon, FolderOpenIcon, SaveIcon, PlusIcon, PenToolIcon } from 'lucide-react'
+import { showSuccess, showError } from '@/lib/toast'
 
 /**
  * Toolbar Component
@@ -47,9 +48,12 @@ export function Toolbar() {
       const success = await newProject()
       if (success) {
         setDirty(false)
+        showSuccess('Project Created', 'New project created successfully')
+      } else {
+        showError('Creation Failed', 'Failed to create new project')
       }
     } catch (error) {
-      console.error('Failed to create new project:', error)
+      showError('Creation Failed', error instanceof Error ? error.message : 'Unknown error')
     }
   }, [isDirty, newProject, setDirty])
 
@@ -66,9 +70,12 @@ export function Toolbar() {
       const success = await openProject()
       if (success) {
         setDirty(false)
+        showSuccess('Project Opened', 'Project loaded successfully')
+      } else {
+        showError('Open Failed', 'Failed to open project')
       }
     } catch (error) {
-      console.error('Failed to open project:', error)
+      showError('Open Failed', error instanceof Error ? error.message : 'Unknown error')
     }
   }, [isDirty, openProject, setDirty])
 
@@ -77,9 +84,12 @@ export function Toolbar() {
       const success = await saveProject()
       if (success) {
         setDirty(false)
+        showSuccess('Project Saved', 'All changes saved successfully')
+      } else {
+        showError('Save Failed', 'Failed to save project')
       }
     } catch (error) {
-      console.error('Failed to save project:', error)
+      showError('Save Failed', error instanceof Error ? error.message : 'Unknown error')
     }
   }, [saveProject, setDirty])
 
@@ -90,18 +100,24 @@ export function Toolbar() {
         const success = await newProject()
         if (success) {
           setDirty(false)
+          showSuccess('Project Created', 'New project created successfully')
+        } else {
+          showError('Creation Failed', 'Failed to create new project')
         }
       } catch (error) {
-        console.error('Failed to create new project:', error)
+        showError('Creation Failed', error instanceof Error ? error.message : 'Unknown error')
       }
     } else if (pendingAction === 'open') {
       try {
         const success = await openProject()
         if (success) {
           setDirty(false)
+          showSuccess('Project Opened', 'Project loaded successfully')
+        } else {
+          showError('Open Failed', 'Failed to open project')
         }
       } catch (error) {
-        console.error('Failed to open project:', error)
+        showError('Open Failed', error instanceof Error ? error.message : 'Unknown error')
       }
     }
 
@@ -116,14 +132,16 @@ export function Toolbar() {
       const success = await saveProject()
       if (success) {
         setDirty(false)
+        showSuccess('Project Saved', 'All changes saved successfully')
         await executePendingAction()
       } else {
         // Save failed, close dialog but don't continue
+        showError('Save Failed', 'Failed to save project')
         setShowUnsavedDialog(false)
         setPendingAction(null)
       }
     } catch (error) {
-      console.error('Failed to save project:', error)
+      showError('Save Failed', error instanceof Error ? error.message : 'Unknown error')
       setShowUnsavedDialog(false)
       setPendingAction(null)
     }

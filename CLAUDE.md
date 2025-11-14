@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Panoramic Game Creator is a desktop Electron application for creating panoramic point-and-click adventure games. Users create nodes with 360° panoramic images, draw polygonal hotspots on the panoramas that link to other nodes, and visualize the node graph.
 
-**Current Status**: Phases 1-5.5 complete! ✅ Full node management, hotspot drawing, and target assignment working. Ready for Phase 6 (Node Graph).
+**Current Status**: Phases 1-6 complete! ✅ Full node management, hotspot drawing, target assignment, and node graph visualization working. Ready for Phase 7 (Project Files & Export).
 
 ### Completed Phases
 
@@ -49,7 +49,7 @@ Panoramic Game Creator is a desktop Electron application for creating panoramic 
   - IPC infrastructure complete (`fileHandlers.ts`, `projectHandlers.ts`)
   - Image validation for equirectangular and cubic panoramas
 
-- ✅ **Phase 5.5: Hotspot Target Assignment** (CRITICAL addition - 2025-11-09)
+- ✅ **Phase 5.5: Hotspot Target Assignment** (2025-11-09)
   - **Hotspot Properties Card**: Edit name, assign target node, delete hotspot
   - **Target Node Dropdown**: Select which node each hotspot links to
   - **Enhanced Node Properties**: Edit name, set start node, view linked hotspots
@@ -57,17 +57,27 @@ Panoramic Game Creator is a desktop Electron application for creating panoramic 
   - Complete CRUD operations for nodes and hotspots
   - Enables Phase 6 graph connections (edges require targetNodeId)
 
+- ✅ **Phase 6: Node Graph Visualization** (2025-11-10)
+  - **React Flow Integration**: Full graph canvas with custom node cards
+  - **Custom Node Cards**: Thumbnails, badges (start node, orphaned), connection counts
+  - **Smooth Bezier Edges**: Curved connectors from source (right) to target (left) handles
+  - **Edge Styling**: Animated green edges from start node, gray for others
+  - **Drag-and-Drop Positioning**: Nodes draggable with position persistence
+  - **Selection Sync**: Click node in graph switches to Editor view with node selected
+  - **Graph Controls**: Pan, zoom, fit view, minimap with color-coded nodes
+  - **Type-Safe Converters**: `graphConverters.ts` transforms project data to React Flow format
+  - **Empty State Handling**: User-friendly message when no nodes exist
+
 ### Next Phase
 
-**Phase 6: Node Graph Visualization (Ready to Start)** - See **plan.md Phase 6** for complete details.
+**Phase 7: Project Files & Robustness** - See **plan.md Phase 7** for complete details.
 
 **Goals:**
-- React Flow canvas with custom node cards
-- Visual representation of all nodes with thumbnails
-- Edges showing hotspot connections (source → target)
-- Drag-and-drop node positioning with persistence
-- Selection sync between Graph and Editor views
-- Start node visual indicator
+- Comprehensive error handling for file operations
+- Project validation on load (detect corruption, missing files)
+- Auto-save with dirty state tracking
+- Recent projects list with file watching
+- Export game as standalone HTML bundle
 
 ## Essential Reading
 
@@ -337,48 +347,86 @@ Use Vitest for unit tests (compatible with Vite).
 panoramic-game-creator/
 ├── src/
 │   ├── main/
-│   │   └── index.ts                   # Electron main process (template)
+│   │   └── index.ts                      # Electron main process
 │   ├── preload/
-│   │   ├── index.ts                   # IPC bridge (template)
-│   │   └── index.d.ts                 # Preload type definitions
+│   │   ├── index.ts                      # IPC bridge
+│   │   └── index.d.ts                    # Preload type definitions
 │   └── renderer/
 │       └── src/
 │           ├── components/
-│           │   └── ui/                # shadcn: Button, AlertDialog
+│           │   ├── layout/               # ✅ Layout components
+│           │   │   ├── AppLayout.tsx     # Main app container
+│           │   │   ├── Toolbar.tsx       # Top toolbar
+│           │   │   ├── NodeListPanel.tsx # Left sidebar with node list
+│           │   │   └── PropertiesPanel.tsx # Right sidebar with properties
+│           │   ├── editor/               # ✅ Editor components
+│           │   │   ├── PanoramaViewer.tsx
+│           │   │   ├── PanoramaSphere.tsx
+│           │   │   ├── HotspotRenderer.tsx
+│           │   │   └── ... (hotspot drawing components)
+│           │   ├── graph/                # ✅ NEW: Phase 6
+│           │   │   ├── GraphView.tsx     # React Flow container
+│           │   │   └── CustomNodeCard.tsx # Custom node component
+│           │   ├── dialogs/              # ✅ Dialogs
+│           │   │   ├── AddNodeDialog.tsx
+│           │   │   └── NewProjectDialog.tsx
+│           │   └── ui/                   # ✅ shadcn components
+│           │       ├── button.tsx
+│           │       ├── card.tsx
+│           │       ├── badge.tsx
+│           │       └── ... (other shadcn components)
 │           ├── lib/
-│           │   ├── config.ts          # ✅ All constants (SPHERE_CONFIG, CAMERA_CONFIG, etc.)
-│           │   ├── coordinates.ts     # ✅ Cartesian ↔ Spherical conversions
-│           │   └── utils.ts           # Tailwind merge utilities
+│           │   ├── config.ts             # ✅ All constants
+│           │   ├── coordinates.ts        # ✅ Coordinate conversions
+│           │   ├── graphConverters.ts    # ✅ NEW: Project → React Flow converters
+│           │   ├── graphSelectors.ts     # ✅ NEW: Graph data selectors
+│           │   ├── graphUtils.ts         # ✅ NEW: Graph utilities
+│           │   ├── graphValidation.ts    # ✅ NEW: Graph validation
+│           │   ├── imageImport.ts        # ✅ Image import utilities
+│           │   └── utils.ts              # Tailwind merge utilities
 │           ├── types/
-│           │   ├── project.ts         # ✅ Project, ProjectSettings
-│           │   ├── node.ts            # ✅ Node, PanoramaData
-│           │   ├── hotspot.ts         # ✅ Hotspot, SphericalPoint, HotspotStyle
-│           │   └── index.ts           # Barrel exports
-│           ├── stores/                # 📁 Empty - ready for Zustand stores
-│           ├── App.tsx                # Template boilerplate (to be replaced)
-│           └── main.tsx               # React entry
-├── package.json                       # ✅ All dependencies installed
-├── CLAUDE.md                          # This file
-├── plan.md                            # Phase-by-phase implementation plan
-├── TECHNICAL_SPEC.md                  # Detailed algorithms and specs
-└── DECISIONS.md                       # All technical decisions
+│           │   ├── project.ts            # ✅ Project, ProjectSettings
+│           │   ├── node.ts               # ✅ Node, PanoramaData
+│           │   ├── hotspot.ts            # ✅ Hotspot, SphericalPoint
+│           │   ├── graph.ts              # ✅ NEW: GraphNode, GraphEdge
+│           │   └── index.ts              # Barrel exports
+│           ├── stores/
+│           │   ├── projectStore.ts       # ✅ Project data store
+│           │   └── editorStore.ts        # ✅ UI state store
+│           ├── App.tsx                   # ✅ Main app component
+│           └── main.tsx                  # React entry
+├── electron/
+│   └── main/
+│       ├── fileHandlers.ts               # ✅ File dialog handlers
+│       └── projectHandlers.ts            # ✅ Project save/load handlers
+├── package.json                          # ✅ All dependencies installed
+├── CLAUDE.md                             # This file
+├── plan.md                               # Phase-by-phase implementation plan
+├── TECHNICAL_SPEC.md                     # Detailed algorithms and specs
+└── DECISIONS.md                          # All technical decisions
 ```
 
-### What to Build Next (Phase 2)
+### What's Working Now (Phase 6 Complete)
 
-See **plan.md Phase 2: Basic App Layout** for complete requirements. Summary:
+The application now has a fully functional node graph visualization:
 
-1. Create layout components:
-   - `components/layout/AppLayout.tsx` - Main container
-   - `components/layout/Toolbar.tsx` - Top toolbar with buttons
-   - `components/layout/NodeListPanel.tsx` - Left sidebar
-   - `components/layout/PropertiesPanel.tsx` - Right sidebar
-2. Create editor store: `stores/editorStore.ts` (UI state: selected node, view mode, etc.)
-3. Install additional shadcn components: Card, Tabs, ScrollArea
-4. Update `App.tsx` to use new layout
-5. Implement view switching (Editor ↔ Graph)
+1. **Graph View**: React Flow canvas showing all nodes with smooth bezier edge connections
+2. **Interactive Nodes**: Drag to reposition (persisted), click to select and switch to Editor
+3. **Visual Feedback**: Start node (green border), orphaned nodes (orange), connection counts
+4. **Smart Edges**: Curved connectors from right handle → left handle, animated from start node
+5. **Graph Controls**: Pan, zoom, fit view, minimap with color-coded nodes
+6. **View Switching**: Seamless switching between Editor and Graph views with state sync
 
 ## Important Implementation Notes
+
+### When implementing React Flow (Graph View):
+
+- Use `type: 'default'` for smooth bezier curves (not 'smoothstep' which creates angled corners)
+- Handles must have explicit IDs that match edge `sourceHandle`/`targetHandle` properties
+- Position handles: `target` on left (Position.Left), `source` on right (Position.Right)
+- Node position changes: throttle updates to avoid excessive store mutations
+- Edge derivation: edges are computed from hotspots, never created directly by user
+- Selection sync: clicking a node in graph view switches to editor and selects that node
 
 ### When implementing Three.js components:
 
@@ -432,7 +480,7 @@ If implementation differs from spec, update the spec to reflect reality.
 
 ---
 
-**Status**: Phases 1-5.5 ✅ Complete | Ready for Phase 6 (Node Graph) 🎯
-**Last Updated**: 2025-11-09
-**Current Milestone**: Phase 5.5 complete - Hotspot target assignment enables graph connections
-**Next Phase**: Phase 6 - Node Graph Visualization with React Flow (see plan.md Phase 6)
+**Status**: Phases 1-6 ✅ Complete | Ready for Phase 7 (Project Files & Export) 🎯
+**Last Updated**: 2025-11-10
+**Current Milestone**: Phase 6 complete - Full node graph visualization with smooth bezier edges
+**Next Phase**: Phase 7 - Error handling, auto-save, and game export (see plan.md Phase 7)

@@ -8,11 +8,13 @@ import type {
   HotspotStyle,
   ProjectSettings
 } from '@/types'
+import type { GraphLayoutData } from '@/types/graph'
 import {
   importPanoramaForNode,
   replacePanoramaForNode,
   type PanoramaType
 } from '@/lib/imageImport'
+import { calculateInitialNodePosition } from '@/lib/graphUtils'
 
 /**
  * Project Store
@@ -35,6 +37,9 @@ interface ProjectState {
   nodes: Node[]
   startNodeId: string | null
 
+  // Graph layout data (persisted)
+  graphLayout: GraphLayoutData | null
+
   // Node operations
   addNode: (name: string, panorama: PanoramaData) => Node
   updateNode: (id: string, updates: Partial<Node>) => void
@@ -50,6 +55,10 @@ interface ProjectState {
   addHotspot: (nodeId: string, polygon: SphericalPoint[], name?: string) => Hotspot | null
   removeHotspot: (nodeId: string, hotspotId: string) => void
   updateHotspot: (nodeId: string, hotspotId: string, updates: Partial<Hotspot>) => void
+
+  // Graph layout operations
+  updateNodePosition: (nodeId: string, position: { x: number; y: number }) => void
+  updateGraphViewport: (viewport: { x: number; y: number; zoom: number }) => void
 
   // Project lifecycle operations
   newProject: () => Promise<boolean>
@@ -75,25 +84,32 @@ const initialState = {
   modified: null,
   settings: DEFAULT_SETTINGS,
   nodes: [],
-  startNodeId: null
+  startNodeId: null,
+  graphLayout: null
 }
 
 export const useProjectStore = create<ProjectState>((set, get) => ({
   ...initialState,
 
   addNode: (name, panorama) => {
+    const state = get()
+
+    // Calculate initial position based on existing nodes (grid layout)
+    const position = calculateInitialNodePosition(state.nodes)
+    console.log('Adding node with position:', position, 'Existing nodes:', state.nodes.length)
+
     const newNode: Node = {
       id: uuidv4(),
       name,
       panorama,
       hotspots: [],
-      position: { x: 0, y: 0 }, // For graph layout
+      position,
       metadata: {}
     }
 
-    set((state) => ({
+    set({
       nodes: [...state.nodes, newNode]
-    }))
+    })
 
     return newNode
   },
@@ -171,13 +187,16 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         }
       }
 
+      // Calculate initial position based on existing nodes (grid layout)
+      const position = calculateInitialNodePosition(get().nodes)
+
       // Create node with imported panorama
       const newNode: Node = {
         id: nodeId,
         name,
         panorama: panoramaData,
         hotspots: [],
-        position: { x: 0, y: 0 },
+        position,
         metadata: {}
       }
 
@@ -320,6 +339,31 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     })
   },
 
+  // Graph layout operations
+  updateNodePosition: (nodeId, position) => {
+    set((state) => ({
+      nodes: state.nodes.map((node) => (node.id === nodeId ? { ...node, position } : node)),
+      graphLayout: {
+        nodePositions: {
+          ...state.graphLayout?.nodePositions,
+          [nodeId]: position
+        },
+        viewport: state.graphLayout?.viewport || { x: 0, y: 0, zoom: 1 },
+        lastModified: new Date().toISOString()
+      }
+    }))
+  },
+
+  updateGraphViewport: (viewport) => {
+    set((state) => ({
+      graphLayout: {
+        nodePositions: state.graphLayout?.nodePositions || {},
+        viewport,
+        lastModified: new Date().toISOString()
+      }
+    }))
+  },
+
   // Project lifecycle operations
   newProject: async () => {
     try {
@@ -375,7 +419,8 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         modified: data.metadata?.modified || null,
         settings: data.settings || DEFAULT_SETTINGS,
         nodes: data.nodes as Node[], // Type assertion from unknown[]
-        startNodeId: data.startNodeId
+        startNodeId: data.startNodeId,
+        graphLayout: (data.graphLayout as GraphLayoutData) || null
       })
 
       console.log('Project opened:', projectPath)
@@ -387,8 +432,17 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   },
 
   saveProject: async () => {
-    const { projectPath, projectId, projectName, version, created, nodes, startNodeId, settings } =
-      get()
+    const {
+      projectPath,
+      projectId,
+      projectName,
+      version,
+      created,
+      nodes,
+      startNodeId,
+      settings,
+      graphLayout
+    } = get()
 
     if (!projectPath) {
       console.error('No project open. Cannot save.')
@@ -406,6 +460,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         nodes,
         startNodeId,
         settings,
+        graphLayout,
         metadata: {
           created: created || now, // Preserve original created timestamp
           modified: now // Always update modified timestamp

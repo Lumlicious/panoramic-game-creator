@@ -61,6 +61,7 @@ export interface ProjectData {
   nodes: unknown[] // Typed as 'any' here, properly typed in renderer
   startNodeId: string | null
   settings: ProjectSettings
+  graphLayout?: unknown // Graph layout data (optional for backward compatibility)
   metadata?: {
     created: string
     modified: string

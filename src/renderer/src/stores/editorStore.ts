@@ -10,6 +10,14 @@ import { create } from 'zustand'
 export type ViewMode = 'editor' | 'graph'
 export type DrawingMode = 'select' | 'drawing' | 'editing'
 
+/**
+ * Graph view state (ephemeral - not persisted)
+ */
+interface GraphViewState {
+  // Fit view trigger
+  shouldFitView: boolean
+}
+
 interface EditorState {
   // View state
   viewMode: ViewMode
@@ -26,12 +34,17 @@ interface EditorState {
   // Dirty flag (unsaved changes)
   isDirty: boolean
 
+  // Graph view state
+  graphView: GraphViewState
+
   // Actions
   setViewMode: (mode: ViewMode) => void
   setSelectedNodeId: (nodeId: string | null) => void
   setSelectedHotspotId: (hotspotId: string | null) => void
   setDrawingMode: (mode: DrawingMode) => void
   setDirty: (dirty: boolean) => void
+  triggerFitView: () => void
+  clearFitViewTrigger: () => void
   reset: () => void
 }
 
@@ -40,7 +53,10 @@ const initialState = {
   selectedNodeId: null,
   selectedHotspotId: null,
   drawingMode: 'select' as DrawingMode,
-  isDirty: false
+  isDirty: false,
+  graphView: {
+    shouldFitView: false
+  }
 }
 
 export const useEditorStore = create<EditorState>((set) => ({
@@ -63,6 +79,16 @@ export const useEditorStore = create<EditorState>((set) => ({
   }),
 
   setDirty: (dirty) => set({ isDirty: dirty }),
+
+  triggerFitView: () =>
+    set((state) => ({
+      graphView: { ...state.graphView, shouldFitView: true }
+    })),
+
+  clearFitViewTrigger: () =>
+    set((state) => ({
+      graphView: { ...state.graphView, shouldFitView: false }
+    })),
 
   reset: () => set(initialState)
 }))

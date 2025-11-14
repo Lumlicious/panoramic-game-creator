@@ -17,6 +17,7 @@ import { PlusIcon, Loader2Icon } from 'lucide-react'
 import { useProjectStore } from '@/stores/projectStore'
 import { useEditorStore } from '@/stores/editorStore'
 import { getThumbnailUrl, type PanoramaType } from '@/lib/imageImport'
+import { showSuccess, showError } from '@/lib/toast'
 
 /**
  * AddNodeDialog Component
@@ -38,7 +39,7 @@ function AddNodeDialog({ open, onOpenChange, onNodeCreated }: AddNodeDialogProps
 
   const handleCreate = async () => {
     if (!nodeName.trim()) {
-      console.error('Node name is required')
+      showError('Validation Error', 'Node name is required')
       return
     }
 
@@ -47,14 +48,17 @@ function AddNodeDialog({ open, onOpenChange, onNodeCreated }: AddNodeDialogProps
       const node = await createNodeWithPanorama(nodeName.trim(), panoramaType)
       if (node) {
         setDirty(true)
+        showSuccess('Node Created', `"${nodeName.trim()}" created successfully`)
         onNodeCreated(node.id)
         // Reset form
         setNodeName('')
         setPanoramaType('equirectangular')
         onOpenChange(false)
+      } else {
+        showError('Creation Cancelled', 'Node creation was cancelled or failed')
       }
     } catch (error) {
-      console.error('Failed to create node:', error)
+      showError('Creation Failed', error instanceof Error ? error.message : 'Failed to create node')
     } finally {
       setIsCreating(false)
     }

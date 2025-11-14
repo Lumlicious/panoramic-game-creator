@@ -5,4 +5,12 @@
 
 export type { SphericalPoint, HotspotStyle, Hotspot } from './hotspot'
 export type { PanoramaData, Node } from './node'
-export type { ProjectSettings, GraphLayoutData, Project } from './project'
+export type { ProjectSettings, Project } from './project'
+export type {
+  GraphNodeData,
+  GraphNode,
+  GraphEdgeData,
+  GraphEdge,
+  GraphViewport,
+  GraphLayoutData
+} from './graph'
