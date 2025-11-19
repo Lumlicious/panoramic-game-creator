@@ -777,32 +777,41 @@ The isDirty flag was only set when creating new nodes. Fixed by adding setDirty(
 
 ---
 
-### Step 2: Plan Player Architecture
+### Step 2: Plan Player Architecture ✅ COMPLETE
 **Objective**: Design player component structure and export format
 
+**Status**: Completed 2025-11-18
+
 **Tasks:**
-- [ ] Review existing PanoramaViewer code to identify reusable parts
-- [ ] Design read-only panorama viewer (no editing)
-- [ ] Plan hotspot click → navigation flow
-- [ ] Choose export format: Single HTML vs Web Folder (start with single HTML)
-- [ ] Design player UI overlay (minimal, non-intrusive)
-- [ ] Plan file structure for player components
+- [x] Review existing PanoramaViewer code to identify reusable parts
+- [x] Design read-only panorama viewer (no editing)
+- [x] Plan hotspot click → navigation flow
+- [x] Choose export format: Single HTML vs Web Folder (start with single HTML)
+- [x] Design player UI overlay (minimal, non-intrusive)
+- [x] Plan file structure for player components
 
-**Decisions to Make:**
-- Export format: Start with **single HTML** (simpler, self-contained)
-- Player framework: **Vanilla JS + Three.js** (no React bundle bloat) OR **React** (easier, reuse code)
-- Asset embedding: **Base64 data URIs** for panoramas (works offline)
+**Decisions Made:**
+- ✅ Export format: **Single HTML file** with base64-embedded assets (simpler, self-contained)
+- ✅ Player framework: **Vanilla JS + Three.js** (no React - minimize bundle size from ~150KB to <500KB)
+- ✅ Asset embedding: **Base64 data URIs** for panoramas (works offline, no path issues)
 
-**Files to Create:**
-- `src/renderer/src/components/player/GamePlayer.tsx` - Main player
-- `src/renderer/src/components/player/PlayerUI.tsx` - UI overlay
-- `src/lib/export/generateHTML.ts` - Export logic
-- `templates/player-template.html` - Standalone HTML template
+**Files Planned:**
+- `src/renderer/src/player/core/GamePlayer.ts` - Main player orchestrator
+- `src/renderer/src/player/core/PanoramaRenderer.ts` - Vanilla Three.js panorama
+- `src/renderer/src/player/core/HotspotRenderer.ts` - Vanilla Three.js hotspots
+- `src/renderer/src/player/core/NavigationManager.ts` - History & state
+- `src/renderer/src/player/core/UIOverlay.ts` - DOM manipulation
+- `src/renderer/src/player/build/template.html` - Standalone HTML template
+- `src/renderer/src/player/build/bundlePlayer.ts` - esbuild bundler
+- `electron/main/exportHandlers.ts` - Export IPC handler
+
+**Documentation:**
+- Complete architecture document: `PHASE7_ARCHITECTURE.md`
 
 **Acceptance Criteria:**
-- [ ] Clear architecture documented
-- [ ] File structure planned
-- [ ] Export format decided
+- [x] Clear architecture documented
+- [x] File structure planned
+- [x] Export format decided
 
 ---
 
