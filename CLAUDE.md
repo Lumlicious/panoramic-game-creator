@@ -78,12 +78,18 @@ Panoramic Game Creator is a desktop Electron application for creating panoramic 
   - **Files Modified**: PropertiesPanel.tsx, PanoramaSphere.tsx, GraphView.tsx
   - **Result**: Save button, unsaved changes dialog now fully functional
 
-- ✅ **Phase 7 Step 2: Plan Player Architecture** (2025-11-18)
-  - **Architecture Document**: Complete design in PHASE7_ARCHITECTURE.md
-  - **Framework Decision**: Vanilla JS + Three.js (no React - minimize bundle)
-  - **Export Format**: Single HTML file with base64-embedded assets
-  - **Component Structure**: GamePlayer, PanoramaRenderer, HotspotRenderer, NavigationManager, UIOverlay
-  - **Result**: Clear architecture, file structure, and implementation plan documented
+- ✅ **Phase 7 Step 2: Plan Player Architecture** (2025-11-18) **REDESIGNED**
+  - **Architecture Document**: Complete design in PHASE7_ARCHITECTURE.md (web-hosted game engine)
+  - **Framework Decision**: **React + TypeScript + React Three Fiber** (extensible game engine)
+  - **Export Format**: **Web folder (static site)** for Vercel/Netlify/VPS hosting
+  - **Asset Strategy**: **Separate files** (CDN-friendly, progressive loading, browser cache)
+  - **Build Tool**: Vite (fast builds, optimized for static hosting)
+  - **State Management**: Zustand (familiar from editor, lightweight)
+  - **Component Structure**: GameEngine, PanoramaView, HotspotLayer, AssetLoader, GameUI
+  - **Progressive Loading**: Current node eager, adjacent nodes preloaded, distant nodes lazy
+  - **CDN Support**: Optional CDN URLs for panoramas (manual upload for MVP)
+  - **Extensibility**: Plugin architecture for inventory, dialogs, puzzles (future)
+  - **Result**: React-based game engine architecture, web-first deployment strategy
 
 **Strategic Rationale:**
 Phases 7 & 8 have been **reordered** to prioritize completing the vertical slice (create → edit → save → **PLAY**) before investing in editor robustness features. Basic save/load already works, so we can now validate the core gameplay experience.
@@ -507,7 +513,7 @@ If implementation differs from spec, update the spec to reflect reality.
 
 **Status**: Phase 7 Step 2 ✅ Complete | Building Game Player (Phase 7) 🎯
 **Last Updated**: 2025-11-18
-**Current Progress**: Phase 7 Step 2 complete - Player architecture designed and documented
+**Current Progress**: Phase 7 Step 2 complete - React-based game engine architecture designed
 **Strategic Pivot**: Phases 7 & 8 reordered - Building game player FIRST to complete vertical slice (create → play)
 **Next Step**: Phase 7 Step 3 - Create GamePlayer Component (see plan.md Phase 7 Implementation Checklist)
-**Architecture**: Vanilla JS + Three.js, Single HTML export with base64 assets (see PHASE7_ARCHITECTURE.md)
+**Architecture**: React + R3F + Vite, Web folder export, CDN-friendly, Progressive loading (see PHASE7_ARCHITECTURE.md)

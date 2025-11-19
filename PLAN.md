@@ -780,38 +780,59 @@ The isDirty flag was only set when creating new nodes. Fixed by adding setDirty(
 ### Step 2: Plan Player Architecture ✅ COMPLETE
 **Objective**: Design player component structure and export format
 
-**Status**: Completed 2025-11-18
+**Status**: Completed 2025-11-18 (REDESIGNED for web hosting)
 
 **Tasks:**
 - [x] Review existing PanoramaViewer code to identify reusable parts
 - [x] Design read-only panorama viewer (no editing)
 - [x] Plan hotspot click → navigation flow
-- [x] Choose export format: Single HTML vs Web Folder (start with single HTML)
+- [x] Choose export format: Web Folder vs Single HTML
 - [x] Design player UI overlay (minimal, non-intrusive)
 - [x] Plan file structure for player components
+- [x] Design extensibility for future features (inventory, dialogs, puzzles)
 
-**Decisions Made:**
-- ✅ Export format: **Single HTML file** with base64-embedded assets (simpler, self-contained)
-- ✅ Player framework: **Vanilla JS + Three.js** (no React - minimize bundle size from ~150KB to <500KB)
-- ✅ Asset embedding: **Base64 data URIs** for panoramas (works offline, no path issues)
+**Critical Decisions Made:**
+- ✅ **Export format**: Web folder (static site) for Vercel/Netlify/VPS hosting
+- ✅ **Player framework**: **React + TypeScript + React Three Fiber** (extensible game engine)
+- ✅ **Asset strategy**: **Separate files** (CDN-friendly, progressive loading, browser cache)
+- ✅ **Build tool**: **Vite** (fast builds, optimized static output)
+- ✅ **State management**: **Zustand** (familiar from editor, lightweight)
+- ✅ **Progressive loading**: Load current node immediately, preload adjacent nodes in background
+- ✅ **CDN support**: Optional CDN URLs for panoramas (manual upload for MVP)
+
+**Architecture Highlights:**
+- React-based game engine (NOT Vanilla JS)
+- Plugin architecture for inventory, dialogs, puzzles
+- Texture caching and preloading system
+- Auto-save to localStorage
+- Separate `/player` directory (independent Vite project)
 
 **Files Planned:**
-- `src/renderer/src/player/core/GamePlayer.ts` - Main player orchestrator
-- `src/renderer/src/player/core/PanoramaRenderer.ts` - Vanilla Three.js panorama
-- `src/renderer/src/player/core/HotspotRenderer.ts` - Vanilla Three.js hotspots
-- `src/renderer/src/player/core/NavigationManager.ts` - History & state
-- `src/renderer/src/player/core/UIOverlay.ts` - DOM manipulation
-- `src/renderer/src/player/build/template.html` - Standalone HTML template
-- `src/renderer/src/player/build/bundlePlayer.ts` - esbuild bundler
-- `electron/main/exportHandlers.ts` - Export IPC handler
+Player source (`/player/src/`):
+- `components/GameEngine.tsx` - Top-level coordinator
+- `components/PanoramaView.tsx` - Canvas container
+- `components/three/PanoramaSphere.tsx` - React Three Fiber sphere
+- `components/three/HotspotLayer.tsx` - Interactive hotspots
+- `stores/gameStore.ts` - Zustand game state
+- `lib/textureCache.ts` - Asset caching
+- `lib/assetResolver.ts` - CDN/local URL resolution
+
+Export infrastructure:
+- `electron/main/exportHandlers.ts` - IPC export handler
+- `electron/main/transformers/gameDataTransformer.ts` - Project → game.json
+- Export output: `my-game/dist/` (upload to web host)
 
 **Documentation:**
-- Complete architecture document: `PHASE7_ARCHITECTURE.md`
+- Complete architecture document: `PHASE7_ARCHITECTURE.md` (web-hosted game engine)
 
 **Acceptance Criteria:**
-- [x] Clear architecture documented
-- [x] File structure planned
-- [x] Export format decided
+- [x] Clear architecture documented (React-based, web-first)
+- [x] File structure planned (separate `/player` project)
+- [x] Export format decided (web folder, not single HTML)
+- [x] Framework decided (React + R3F for extensibility)
+- [x] Progressive loading strategy defined
+- [x] CDN support designed
+- [x] Plugin architecture for future features
 
 ---
 

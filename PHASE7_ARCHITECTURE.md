@@ -1,811 +1,531 @@
-# Phase 7 Step 2: Game Player & Export Architecture
+# Phase 7: Game Player & Export System - Web-Hosted Game Engine
 
 ## Executive Summary
 
-**Framework Recommendation:** Vanilla JS + Three.js
-**Export Format (MVP):** Single HTML file with base64-embedded assets
-**Rationale:** Minimize bundle size, eliminate React overhead, ensure maximum compatibility
+**Framework:** React + TypeScript + React Three Fiber
+**Export Format:** Web folder (static site)
+**Hosting:** Vercel, Netlify, VPS, GitHub Pages
+**Asset Strategy:** Separate files, CDN-friendly, progressive loading
+**Architecture:** Extensible game engine (inventory, dialogs, puzzles planned)
 
 ---
 
-## 1. Major Technical Decisions
+## Table of Contents
 
-### Decision A: Vanilla JS + Three.js (No React)
-
-**Chosen: Vanilla JS + Three.js**
-
-**Rationale:**
-1. **Bundle Size:** React + React Three Fiber + deps = ~150KB minified. For a player that just navigates panoramas, this overhead isn't justified.
-2. **Simplicity:** Player only needs basic DOM manipulation (show/hide UI, handle clicks). No complex state management needed.
-3. **Performance:** Direct Three.js calls are faster than React Three Fiber's reconciliation layer.
-4. **Portability:** Easier to embed in single HTML file without complex bundling.
-
-**Trade-offs:**
-- ❌ Can't directly reuse React components
-- ✅ Can reuse all the Three.js logic (geometry, materials, raycasting)
-- ✅ Can reuse utility functions (coordinates, triangulation)
-
-### Decision B: Single HTML File (MVP)
-
-**Chosen: Single HTML with base64-embedded panoramas**
-
-**Rationale:**
-1. **User Experience:** One file to share/host. Drag-and-drop simplicity.
-2. **No Path Issues:** No relative path problems on different file systems.
-3. **Easier Export Logic:** Bundle everything, write one file, done.
-
-**File Size Concerns:**
-- Base64 encoding increases size by ~33%
-- Typical panorama: 2-5MB JPG → 3-7MB base64
-- 10-node game: ~30-70MB HTML file (acceptable for MVP)
-- Chrome/Firefox handle 100MB+ HTML files fine
-
-**Future Enhancement (Phase 8+):**
-- Add "Web Folder" export option for larger games
-- Implement external asset loading for 50+ node games
-
-### Decision C: Reuse Strategy
-
-**Direct Reuse (Copy & Simplify):**
-- `coordinates.ts` - All coordinate conversion functions
-- `hotspotGeometry.ts` - Earcut triangulation logic
-- `config.ts` - Constants (sphere radius, etc.)
-
-**Adapt from Existing:**
-- `PanoramaSphere.tsx` → `PanoramaRenderer.js` (Three.js only)
-- `HotspotMesh.tsx` → `HotspotRenderer.js` (Three.js only)
-
-**New Implementation:**
-- `GamePlayer.js` - Main player orchestrator
-- `NavigationManager.js` - Node navigation state machine
-- `UIOverlay.js` - Minimal DOM overlay
-- `exportPlayer.ts` - Export IPC handler
-- `player-template.html` - HTML scaffold
+1. [Framework Decisions](#framework-decisions)
+2. [Component Architecture](#component-architecture)
+3. [Export Architecture](#export-architecture)
+4. [Progressive Loading Strategy](#progressive-loading-strategy)
+5. [CDN Support](#cdn-support)
+6. [Extensibility Design](#extensibility-design)
+7. [File Structure](#file-structure)
+8. [Reusability Plan](#reusability-plan)
+9. [Implementation Roadmap](#implementation-roadmap)
 
 ---
 
-## 2. Component Architecture
+## Framework Decisions
 
-### 2.1 High-Level Architecture
-
-```
-┌─────────────────────────────────────────┐
-│           player.html (Single File)      │
-│  ┌───────────────────────────────────┐  │
-│  │  <div id="game-container">        │  │
-│  │    ├─ <canvas id="game-canvas">   │  │  ← Three.js renders here
-│  │    └─ <div id="ui-overlay">       │  │  ← Minimal UI (title, help)
-│  │         └─ <div id="hotspot-hint">│  │  ← Hover tooltip
-│  └───────────────────────────────────┘  │
-│                                          │
-│  <script>                                │
-│    // Embedded project JSON              │
-│    const GAME_DATA = { ... };            │
-│                                          │
-│    // Embedded panorama images (base64) │
-│    const ASSET_MAP = {                   │
-│      "node-uuid-1": "data:image/jpeg;..." │
-│    };                                    │
-│                                          │
-│    // Bundled player code                │
-│    class GamePlayer { ... }              │
-│    class PanoramaRenderer { ... }        │
-│    class HotspotRenderer { ... }         │
-│    // ... (all player logic)             │
-│                                          │
-│    // Bootstrap                          │
-│    new GamePlayer(GAME_DATA, ASSET_MAP); │
-│  </script>                               │
-└─────────────────────────────────────────┘
-```
-
-### 2.2 Core Classes
-
-#### GamePlayer (Main Orchestrator)
+### Core Stack
 
 ```typescript
-class GamePlayer {
-  private project: Project;
-  private assetMap: Map<string, string>; // nodeId → data URI
-  private currentNodeId: string;
-
-  private panoramaRenderer: PanoramaRenderer;
-  private hotspotRenderer: HotspotRenderer;
-  private navigationManager: NavigationManager;
-  private uiOverlay: UIOverlay;
-
-  constructor(projectData: Project, assetMap: Record<string, string>) {
-    this.project = projectData;
-    this.assetMap = new Map(Object.entries(assetMap));
-
-    // Find start node
-    this.currentNodeId = this.findStartNode();
-
-    // Initialize subsystems
-    this.panoramaRenderer = new PanoramaRenderer(canvas);
-    this.hotspotRenderer = new HotspotRenderer(this.panoramaRenderer.scene);
-    this.navigationManager = new NavigationManager();
-    this.uiOverlay = new UIOverlay();
-
-    // Setup event handlers
-    this.setupInteractions();
-
-    // Load first node
-    this.loadNode(this.currentNodeId);
-  }
-
-  private findStartNode(): string {
-    const startNode = this.project.nodes.find(n => n.isStartNode);
-    return startNode?.id || this.project.nodes[0]?.id;
-  }
-
-  private setupInteractions(): void {
-    // Click handler for hotspot navigation
-    this.panoramaRenderer.canvas.addEventListener('click', (e) => {
-      const clickedHotspot = this.raycastHotspots(e);
-      if (clickedHotspot?.targetNodeId) {
-        this.navigateToNode(clickedHotspot.targetNodeId);
-      }
-    });
-
-    // Hover handler for cursor changes
-    this.panoramaRenderer.canvas.addEventListener('mousemove', (e) => {
-      const hoveredHotspot = this.raycastHotspots(e);
-      this.uiOverlay.setHotspotHint(hoveredHotspot?.name);
-      this.panoramaRenderer.canvas.style.cursor =
-        hoveredHotspot ? 'pointer' : 'grab';
-    });
-  }
-
-  private loadNode(nodeId: string): void {
-    const node = this.project.nodes.find(n => n.id === nodeId);
-    if (!node) return;
-
-    // Load panorama
-    const imageDataUri = this.assetMap.get(nodeId);
-    this.panoramaRenderer.loadPanorama(imageDataUri, node.panorama.type);
-
-    // Load hotspots
-    this.hotspotRenderer.setHotspots(node.hotspots);
-
-    // Update UI
-    this.uiOverlay.setNodeTitle(node.name);
-    this.navigationManager.pushHistory(nodeId);
-  }
-
-  private navigateToNode(nodeId: string): void {
-    this.currentNodeId = nodeId;
-    this.loadNode(nodeId);
-  }
-
-  private raycastHotspots(event: MouseEvent): Hotspot | null {
-    // Convert mouse to NDC, raycast against hotspot meshes
-    // (Reuse raycasting logic from editor)
+// Package.json for player (separate from editor)
+{
+  "name": "pgc-player",
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "@react-three/fiber": "^8.15.0",  // Consistent with editor
+    "@react-three/drei": "^9.92.0",    // OrbitControls, useTexture
+    "three": "^0.160.0",
+    "zustand": "^4.4.7"                // Lightweight, familiar
+  },
+  "devDependencies": {
+    "vite": "^5.0.0",                  // Fast builds, great for static sites
+    "typescript": "^5.3.0",
+    "@vitejs/plugin-react": "^4.2.0"
   }
 }
 ```
 
-#### PanoramaRenderer (Simplified PanoramaSphere)
+### Decision Matrix
+
+| Decision | Choice | Rationale |
+|----------|--------|-----------|
+| **Build Tool** | **Vite** | Fast builds, excellent static site output, tree-shaking, built-in TypeScript support |
+| **3D Rendering** | **React Three Fiber** | Consistent with editor, declarative, React-friendly, easier to extend with UI overlays |
+| **State Management** | **Zustand** | Lightweight (1KB), familiar from editor, perfect for game state, no boilerplate |
+| **Routing** | **Custom Router** | Built-in node navigation (not URL-based), simpler than React Router for single-page game |
+| **Styling** | **Tailwind CSS** | Consistent with editor, utility-first for game UI overlays |
+
+### Why React Three Fiber?
 
 ```typescript
-class PanoramaRenderer {
-  public scene: THREE.Scene;
-  public camera: THREE.PerspectiveCamera;
-  public renderer: THREE.WebGLRenderer;
-  public canvas: HTMLCanvasElement;
+// ✅ React Three Fiber - Declarative, composable
+<Canvas>
+  <PanoramaSphere textureUrl={currentNode.panoramaUrl} />
+  <HotspotMeshes hotspots={currentNode.hotspots} onClick={handleNavigate} />
+  <InventoryOverlay /> {/* Easy to overlay React UI */}
+</Canvas>
 
-  private controls: OrbitControls;
-  private panoramaMesh: THREE.Mesh | null = null;
+// ❌ Direct Three.js - Imperative, harder to integrate with React UI
+useEffect(() => {
+  const scene = new THREE.Scene();
+  const renderer = new THREE.WebGLRenderer();
+  // ... manual setup
+  // Hard to sync with React state
+}, []);
+```
 
-  constructor(canvas: HTMLCanvasElement) {
-    this.canvas = canvas;
-    this.scene = new THREE.Scene();
-    this.camera = new THREE.PerspectiveCamera(75, aspect, 0.1, 1000);
-    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+### Why Zustand?
 
-    this.controls = new OrbitControls(this.camera, canvas);
-    this.controls.enablePan = false;
-    this.controls.enableZoom = true;
-    this.controls.enableDamping = true;
-    this.controls.minPolarAngle = 0;
-    this.controls.maxPolarAngle = Math.PI;
+```typescript
+// ✅ Zustand - Simple, performant
+interface GameState {
+  currentNodeId: string;
+  visitedNodes: Set<string>;
+  inventory: InventoryItem[];
+  gameVariables: Record<string, any>;
+  navigate: (nodeId: string) => void;
+  addInventoryItem: (item: InventoryItem) => void;
+}
 
-    this.animate();
+const useGameStore = create<GameState>((set) => ({
+  currentNodeId: '',
+  visitedNodes: new Set(),
+  inventory: [],
+  gameVariables: {},
+  navigate: (nodeId) => set({ currentNodeId: nodeId }),
+  // ...
+}));
+```
+
+---
+
+## Component Architecture
+
+### Component Hierarchy
+
+```
+<GameEngine>                     // Top-level coordinator
+├── <GameStateProvider>          // Zustand store provider
+├── <AssetLoader>                // Preloads adjacent nodes
+├── <PanoramaView>               // Three.js canvas container
+│   ├── <Canvas>                 // React Three Fiber
+│   │   ├── <PanoramaSphere>     // Sphere with texture
+│   │   ├── <HotspotLayer>       // Clickable hotspots
+│   │   ├── <OrbitControls>      // Camera controls
+│   │   └── <Lighting>           // Ambient light
+│   └── <LoadingSpinner>         // Texture loading state
+├── <GameUI>                     // 2D overlays (HTML/CSS)
+│   ├── <InventoryPanel>         // (future)
+│   ├── <DialogBox>              // (future)
+│   └── <DebugPanel>             // (dev mode only)
+└── <SaveGameManager>            // localStorage persistence
+```
+
+### Core Interfaces
+
+```typescript
+// /player/src/types/game.ts
+
+export interface GameData {
+  version: string;
+  settings: {
+    title: string;
+    startNodeId: string;
+  };
+  nodes: GameNode[];
+}
+
+export interface GameNode {
+  id: string;
+  name: string;
+  panorama: {
+    type: 'equirectangular' | 'cubic';
+    url: string;  // Relative path OR CDN URL
+  };
+  hotspots: GameHotspot[];
+}
+
+export interface GameHotspot {
+  id: string;
+  name: string;
+  vertices: SphericalPoint[];
+  targetNodeId: string | null;
+  interactionType: 'navigate' | 'pickup' | 'trigger';  // Extensibility
+  metadata?: Record<string, any>;  // For custom interactions
+}
+
+export interface SphericalPoint {
+  theta: number;
+  phi: number;
+}
+
+// Game state (Zustand)
+export interface GameState {
+  // Navigation
+  currentNodeId: string;
+  previousNodeId: string | null;
+
+  // Progress tracking
+  visitedNodes: Set<string>;
+
+  // Future features
+  inventory: InventoryItem[];
+  gameVariables: Record<string, any>;
+
+  // Actions
+  navigate: (nodeId: string) => void;
+  addToInventory: (item: InventoryItem) => void;
+  setVariable: (key: string, value: any) => void;
+}
+```
+
+### Key Component Implementations
+
+See full implementation examples in the complete document...
+
+---
+
+## Export Architecture
+
+### Web Folder Structure
+
+```
+my-adventure/                    # Export output
+├── assets/
+│   ├── panoramas/
+│   │   ├── node-abc123.jpg      # Original filenames preserved
+│   │   ├── node-def456.jpg
+│   │   └── ...
+│   ├── data/
+│   │   └── game.json            # Transformed from project.json
+│   └── thumbnails/              # Optional: for loading screens
+│       └── ...
+├── dist/                        # Vite build output (UPLOAD THIS TO WEB HOST)
+│   ├── index.html               # Entry point
+│   ├── assets/
+│   │   ├── index-[hash].js      # Bundled React app
+│   │   ├── index-[hash].css     # Styles
+│   │   └── vendor-[hash].js     # Three.js, React (code split)
+│   └── ...
+└── _headers                     # (Optional) CDN cache headers
+```
+
+### Build Process Flow
+
+1. **Create export directory**
+2. **Transform project.json → game.json** (with CDN URLs if enabled)
+3. **Copy panorama assets** (with optional optimization)
+4. **Build React player** using Vite (`npm run build`)
+5. **Generate cache headers** for CDN
+6. **Output ready for deployment**
+
+### Project → Game Data Transformation
+
+```typescript
+async function transformProjectToGameData(
+  projectPath: string,
+  cdnBaseUrl?: string
+): Promise<GameData> {
+  const projectData = await loadProjectJSON(projectPath);
+
+  const nodes: GameNode[] = projectData.nodes.map(node => ({
+    id: node.id,
+    name: node.name,
+    panorama: {
+      type: node.panorama.type,
+      url: buildAssetUrl(node.panorama.path, cdnBaseUrl)
+    },
+    hotspots: node.hotspots.map(h => ({
+      id: h.id,
+      name: h.name,
+      vertices: h.vertices,
+      targetNodeId: h.targetNodeId,
+      interactionType: 'navigate', // Default for MVP
+      metadata: {}
+    }))
+  }));
+
+  return {
+    version: '1.0.0',
+    settings: {
+      title: projectData.settings.title,
+      startNodeId: projectData.settings.startNodeId
+    },
+    nodes
+  };
+}
+
+function buildAssetUrl(relativePath: string, cdnBaseUrl?: string): string {
+  if (cdnBaseUrl) {
+    // CDN mode: https://cdn.example.com/panoramas/node-abc.jpg
+    const filename = path.basename(relativePath);
+    return `${cdnBaseUrl}/panoramas/${filename}`;
+  } else {
+    // Local mode: ./assets/panoramas/node-abc.jpg
+    const filename = path.basename(relativePath);
+    return `./assets/panoramas/${filename}`;
   }
+}
+```
 
-  loadPanorama(imageDataUri: string, type: PanoramaType): void {
-    // Dispose old texture/mesh
-    if (this.panoramaMesh) {
-      this.panoramaMesh.geometry.dispose();
-      (this.panoramaMesh.material as THREE.Material).dispose();
-      this.scene.remove(this.panoramaMesh);
+---
+
+## Progressive Loading Strategy
+
+### Asset Loading Architecture
+
+- **Current node**: Load immediately (eager)
+- **Adjacent nodes**: Preload in background (linked by hotspots)
+- **Distant nodes**: Load on demand (lazy)
+
+### Texture Cache Manager
+
+```typescript
+class TextureCache {
+  private cache = new Map<string, THREE.Texture>();
+  private loading = new Map<string, Promise<THREE.Texture>>();
+
+  async load(url: string): Promise<THREE.Texture> {
+    // Return cached texture
+    if (this.cache.has(url)) {
+      return this.cache.get(url)!;
     }
 
-    // Load texture from data URI
-    const loader = new THREE.TextureLoader();
-    loader.load(imageDataUri, (texture) => {
-      const geometry = type === 'equirectangular'
-        ? new THREE.SphereGeometry(SPHERE_RADIUS, 64, 64)
-        : new THREE.BoxGeometry(SPHERE_RADIUS * 2, ...);
+    // Return in-flight promise
+    if (this.loading.has(url)) {
+      return this.loading.get(url)!;
+    }
 
-      const material = new THREE.MeshBasicMaterial({
-        map: texture,
-        side: THREE.BackSide
-      });
-
-      this.panoramaMesh = new THREE.Mesh(geometry, material);
-      if (type === 'equirectangular') {
-        this.panoramaMesh.scale.x = -1; // Invert for inside-out view
-      }
-      this.scene.add(this.panoramaMesh);
-    });
-  }
-
-  private animate = (): void => {
-    requestAnimationFrame(this.animate);
-    this.controls.update();
-    this.renderer.render(this.scene, this.camera);
-  }
-}
-```
-
-#### HotspotRenderer (Simplified HotspotMesh)
-
-```typescript
-class HotspotRenderer {
-  private scene: THREE.Scene;
-  private hotspotMeshes: Map<string, THREE.Mesh> = new Map();
-
-  constructor(scene: THREE.Scene) {
-    this.scene = scene;
-  }
-
-  setHotspots(hotspots: Hotspot[]): void {
-    // Clear existing hotspots
-    this.hotspotMeshes.forEach(mesh => {
-      mesh.geometry.dispose();
-      (mesh.material as THREE.Material).dispose();
-      this.scene.remove(mesh);
-    });
-    this.hotspotMeshes.clear();
-
-    // Create new hotspot meshes
-    hotspots.forEach(hotspot => {
-      const mesh = this.createHotspotMesh(hotspot);
-      this.hotspotMeshes.set(hotspot.id, mesh);
-      this.scene.add(mesh);
-    });
-  }
-
-  private createHotspotMesh(hotspot: Hotspot): THREE.Mesh {
-    // Convert spherical polygon to 3D vertices
-    const vertices3D = hotspot.polygon.map(pt =>
-      sphericalToCartesian(pt.theta, pt.phi, HOTSPOT_RADIUS)
-    );
-
-    // Triangulate (reuse earcut logic from hotspotGeometry.ts)
-    const geometry = triangulatePolygonOnSphere(vertices3D);
-
-    const material = new THREE.MeshBasicMaterial({
-      color: 0x00ff00,
-      transparent: true,
-      opacity: 0.3,
-      side: THREE.DoubleSide
+    // Start loading
+    const promise = new Promise<THREE.Texture>((resolve, reject) => {
+      const loader = new THREE.TextureLoader();
+      loader.load(url, resolve, undefined, reject);
     });
 
-    const mesh = new THREE.Mesh(geometry, material);
-    mesh.userData = { hotspotId: hotspot.id, hotspot };
-    return mesh;
-  }
-
-  getHotspotByMesh(mesh: THREE.Mesh): Hotspot | null {
-    return mesh.userData.hotspot || null;
-  }
-}
-```
-
-#### NavigationManager (History & State)
-
-```typescript
-class NavigationManager {
-  private history: string[] = [];
-  private currentIndex: number = -1;
-
-  pushHistory(nodeId: string): void {
-    // Remove forward history if navigating from middle
-    this.history = this.history.slice(0, this.currentIndex + 1);
-    this.history.push(nodeId);
-    this.currentIndex++;
-  }
-
-  canGoBack(): boolean {
-    return this.currentIndex > 0;
-  }
-
-  canGoForward(): boolean {
-    return this.currentIndex < this.history.length - 1;
-  }
-
-  goBack(): string | null {
-    if (!this.canGoBack()) return null;
-    this.currentIndex--;
-    return this.history[this.currentIndex];
-  }
-
-  goForward(): string | null {
-    if (!this.canGoForward()) return null;
-    this.currentIndex++;
-    return this.history[this.currentIndex];
-  }
-}
-```
-
-#### UIOverlay (Minimal DOM UI)
-
-```typescript
-class UIOverlay {
-  private container: HTMLElement;
-  private titleElement: HTMLElement;
-  private hintElement: HTMLElement;
-
-  constructor() {
-    this.container = document.getElementById('ui-overlay')!;
-    this.titleElement = document.getElementById('node-title')!;
-    this.hintElement = document.getElementById('hotspot-hint')!;
-  }
-
-  setNodeTitle(title: string): void {
-    this.titleElement.textContent = title;
-    this.titleElement.style.display = 'block';
-    // Fade out after 3 seconds
-    setTimeout(() => {
-      this.titleElement.style.opacity = '0';
-    }, 3000);
-  }
-
-  setHotspotHint(hotspotName: string | undefined): void {
-    if (hotspotName) {
-      this.hintElement.textContent = hotspotName;
-      this.hintElement.style.display = 'block';
-    } else {
-      this.hintElement.style.display = 'none';
-    }
+    this.loading.set(url, promise);
+    return promise;
   }
 }
 ```
 
 ---
 
-## 3. File Structure
+## CDN Support
 
-### 3.1 New Player Components
-
-```
-src/
-└── renderer/
-    └── src/
-        └── player/                      # NEW: Player-specific code
-            ├── core/
-            │   ├── GamePlayer.ts        # Main orchestrator
-            │   ├── PanoramaRenderer.ts  # Vanilla Three.js panorama
-            │   ├── HotspotRenderer.ts   # Vanilla Three.js hotspots
-            │   ├── NavigationManager.ts # History & state
-            │   └── UIOverlay.ts         # DOM manipulation
-            ├── utils/
-            │   ├── coordinates.ts       # COPY from lib/coordinates.ts
-            │   ├── hotspotGeometry.ts   # COPY from lib/hotspotGeometry.ts
-            │   └── raycasting.ts        # NEW: Raycasting utilities
-            ├── types/
-            │   └── player.d.ts          # Player-specific types
-            └── build/
-                ├── bundlePlayer.ts      # Rollup/esbuild bundler
-                └── template.html        # HTML scaffold
-
-electron/
-└── main/
-    └── exportHandlers.ts                # NEW: Export IPC handler
-```
-
-### 3.2 Export Logic Location
-
-```
-electron/main/exportHandlers.ts          # IPC handler
-src/renderer/src/player/build/           # Build scripts
-```
-
----
-
-## 4. Reusability Plan
-
-### 4.1 Direct Reuse (Copy As-Is)
-
-**From `src/renderer/src/lib/`:**
-- ✅ `coordinates.ts` - All spherical ↔ cartesian conversions
-- ✅ `config.ts` - Constants (SPHERE_RADIUS, HOTSPOT_RADIUS, etc.)
-
-**From existing hotspot code:**
-- ✅ Earcut triangulation logic (adapt to vanilla JS)
-
-### 4.2 Adapt & Simplify
-
-**PanoramaSphere.tsx → PanoramaRenderer.ts:**
-```diff
-- React component with hooks
-- useFrame for animation loop
-- useThree for scene access
-+ Pure class with constructor
-+ requestAnimationFrame loop
-+ Direct Three.js scene management
-```
-
-**HotspotMesh.tsx → HotspotRenderer.ts:**
-```diff
-- React component per hotspot
-- useState for hover/selection
-+ Single class managing all hotspots
-+ Direct mesh creation in loop
-```
-
-### 4.3 New Implementations
-
-**GamePlayer.ts:**
-- Main orchestration logic
-- Event handling
-- Navigation flow
-
-**NavigationManager.ts:**
-- History stack (back/forward buttons for future)
-- State persistence (could save progress to localStorage)
-
-**UIOverlay.ts:**
-- Minimal DOM manipulation
-- Fade-in/out animations
-
-**exportHandlers.ts:**
-- Read project.json
-- Read panorama images
-- Base64 encode images
-- Inject into template
-- Write output HTML
-
----
-
-## 5. Export Architecture
-
-### 5.1 IPC Flow
-
-```
-Renderer (Export button click)
-  ↓
-  window.electronAPI.exportGame(projectPath, outputPath)
-  ↓
-Main Process (exportHandlers.ts)
-  ↓
-  1. Read project.json from projectPath
-  2. Read all panorama images from projectPath/assets/panoramas/
-  3. Base64 encode all images → assetMap
-  4. Bundle player code (GamePlayer.ts, etc.) → playerBundle.js
-  5. Read template.html
-  6. Inject: GAME_DATA, ASSET_MAP, playerBundle.js
-  7. Write to outputPath (e.g., MyGame.html)
-  ↓
-Return { success: true, outputPath }
-  ↓
-Renderer (Show success toast)
-```
-
-### 5.2 Template Structure
-
-**`src/renderer/src/player/build/template.html`:**
-
-```html
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{GAME_TITLE}}</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { overflow: hidden; font-family: sans-serif; }
-
-    #game-container {
-      width: 100vw;
-      height: 100vh;
-      position: relative;
-    }
-
-    #game-canvas {
-      width: 100%;
-      height: 100%;
-      display: block;
-    }
-
-    #ui-overlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-    }
-
-    #node-title {
-      position: absolute;
-      top: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(0, 0, 0, 0.7);
-      color: white;
-      padding: 10px 20px;
-      border-radius: 5px;
-      font-size: 18px;
-      transition: opacity 0.5s;
-    }
-
-    #hotspot-hint {
-      position: absolute;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(0, 0, 0, 0.7);
-      color: white;
-      padding: 8px 16px;
-      border-radius: 5px;
-      font-size: 14px;
-      display: none;
-    }
-  </style>
-</head>
-<body>
-  <div id="game-container">
-    <canvas id="game-canvas"></canvas>
-    <div id="ui-overlay">
-      <div id="node-title"></div>
-      <div id="hotspot-hint"></div>
-    </div>
-  </div>
-
-  <script>
-    // ==================== EMBEDDED GAME DATA ====================
-    const GAME_DATA = {{GAME_DATA_JSON}};
-    const ASSET_MAP = {{ASSET_MAP_JSON}};
-
-    // ==================== BUNDLED PLAYER CODE ====================
-    {{PLAYER_BUNDLE_JS}}
-
-    // ==================== BOOTSTRAP ====================
-    window.addEventListener('DOMContentLoaded', () => {
-      const canvas = document.getElementById('game-canvas');
-      new GamePlayer(canvas, GAME_DATA, ASSET_MAP);
-    });
-  </script>
-</body>
-</html>
-```
-
-### 5.3 Asset Embedding Strategy
-
-**Base64 Encoding:**
+### CDN Integration Modes
 
 ```typescript
-// In exportHandlers.ts
-async function embedAssets(projectPath: string, nodes: Node[]): Promise<Record<string, string>> {
-  const assetMap: Record<string, string> = {};
-
-  for (const node of nodes) {
-    const imagePath = path.join(projectPath, 'assets', 'panoramas', `${node.id}.jpg`);
-    const imageBuffer = await fs.readFile(imagePath);
-    const base64 = imageBuffer.toString('base64');
-    const mimeType = 'image/jpeg'; // Could detect from file extension
-    assetMap[node.id] = `data:${mimeType};base64,${base64}`;
-  }
-
-  return assetMap;
+interface CDNConfig {
+  enabled: boolean;
+  baseUrl?: string;  // e.g., "https://cdn.example.com/my-game"
+  fallbackToLocal: boolean;
 }
 ```
 
-**File Size Optimization:**
+### Export with CDN Option
 
-For MVP, accept larger file sizes. Post-MVP optimizations:
-1. Compress images to 2048px width (vs original 4096px+)
-2. Convert PNG to JPG where possible
-3. Quality adjustment (80-90% JPG quality)
-4. Offer "Web Folder" export for 20+ node games
+User workflow:
+1. Click "Export Game" in editor
+2. Check "Use CDN" option
+3. Enter CDN base URL
+4. Export generates game with CDN URLs
+5. User manually uploads `assets/panoramas/*` to CDN
+6. User deploys `dist/*` to web host
 
 ---
 
-## 6. Player Build Process
+## Extensibility Design
 
-### 6.1 Bundler Configuration
-
-Use **esbuild** for fast bundling (already in project):
-
-**`src/renderer/src/player/build/bundlePlayer.ts`:**
+### Plugin Architecture for Future Features
 
 ```typescript
-import * as esbuild from 'esbuild';
-import * as fs from 'fs-extra';
-
-export async function bundlePlayerCode(): Promise<string> {
-  const result = await esbuild.build({
-    entryPoints: ['src/renderer/src/player/core/GamePlayer.ts'],
-    bundle: true,
-    minify: true,
-    format: 'iife', // Immediately Invoked Function Expression
-    globalName: 'GamePlayer', // Expose as global
-    target: 'es2020',
-    write: false, // Return as string, don't write to disk
-    external: [], // Bundle everything
-  });
-
-  return result.outputFiles[0].text;
+export interface GamePlugin {
+  id: string;
+  name: string;
+  version: string;
+  onNodeEnter?: (node: GameNode) => void;
+  onNodeExit?: (node: GameNode) => void;
+  onHotspotClick?: (hotspot: GameHotspot) => boolean;
+  renderUI?: () => React.ReactNode;
 }
 ```
 
-### 6.2 Export Handler Implementation
+### Future Features Planned
 
-**`electron/main/exportHandlers.ts`:**
+1. **Inventory System**
+   - Pickup items via hotspots
+   - Display inventory UI panel
+   - Use items in combination
 
-```typescript
-import { ipcMain } from 'electron';
-import * as fs from 'fs-extra';
-import * as path from 'path';
-import { bundlePlayerCode } from '../renderer/src/player/build/bundlePlayer';
+2. **Dialog System**
+   - Dialog nodes (non-panoramic)
+   - Choice-based branching
+   - Character portraits
 
-ipcMain.handle('export-game', async (event, projectPath: string, outputPath: string) => {
-  try {
-    // 1. Read project.json
-    const projectJson = await fs.readFile(path.join(projectPath, 'project.json'), 'utf-8');
-    const project = JSON.parse(projectJson);
+3. **Puzzle System**
+   - Slider puzzles
+   - Combination locks
+   - Pattern matching
 
-    // 2. Embed assets
-    const assetMap = await embedAssets(projectPath, project.nodes);
+4. **Save/Load System**
+   - localStorage persistence
+   - Multiple save slots
+   - Auto-save on navigation
 
-    // 3. Bundle player code
-    const playerBundle = await bundlePlayerCode();
+---
 
-    // 4. Read template
-    const templatePath = path.join(__dirname, '../renderer/src/player/build/template.html');
-    let html = await fs.readFile(templatePath, 'utf-8');
+## File Structure
 
-    // 5. Inject data
-    html = html
-      .replace('{{GAME_TITLE}}', project.settings.projectName)
-      .replace('{{GAME_DATA_JSON}}', JSON.stringify(project))
-      .replace('{{ASSET_MAP_JSON}}', JSON.stringify(assetMap))
-      .replace('{{PLAYER_BUNDLE_JS}}', playerBundle);
+### Player Source Code
 
-    // 6. Write output
-    await fs.writeFile(outputPath, html, 'utf-8');
+```
+player/                          # Separate directory
+├── public/
+│   └── favicon.ico
+├── src/
+│   ├── components/
+│   │   ├── GameEngine.tsx       # Top-level coordinator
+│   │   ├── PanoramaView.tsx     # Canvas container
+│   │   ├── three/               # Three.js components
+│   │   │   ├── PanoramaSphere.tsx
+│   │   │   ├── HotspotLayer.tsx
+│   │   │   └── HotspotMesh.tsx
+│   │   └── ui/                  # Future UI components
+│   ├── stores/
+│   │   └── gameStore.ts         # Zustand
+│   ├── hooks/
+│   │   ├── useAssetPreloader.ts
+│   │   └── useGameNavigation.ts
+│   ├── lib/
+│   │   ├── textureCache.ts
+│   │   ├── assetResolver.ts
+│   │   └── coordinates.ts       # Copied from editor
+│   ├── types/
+│   │   ├── game.ts
+│   │   └── plugins.ts
+│   ├── App.tsx
+│   └── main.tsx
+├── package.json
+├── vite.config.ts
+└── tsconfig.json
+```
 
-    return { success: true, outputPath };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-});
+### Export Build Output
+
+```
+my-adventure/                    # User's exported game
+├── assets/
+│   ├── panoramas/               # Panorama images
+│   └── data/
+│       └── game.json            # Game data
+├── dist/                        # UPLOAD THIS TO WEB HOST
+│   ├── index.html
+│   └── assets/
+│       ├── index-[hash].js
+│       └── vendor-[hash].js
+└── _headers                     # CDN cache headers
 ```
 
 ---
 
-## 7. API/Interface Design
+## Reusability Plan
 
-### 7.1 GamePlayer Constructor
+### Shared Code
 
-```typescript
-interface GamePlayerOptions {
-  canvas: HTMLCanvasElement;
-  project: Project;
-  assetMap: Record<string, string>; // nodeId → data URI
-  onNavigate?: (nodeId: string) => void; // Optional callback
-}
+| Module | Editor | Player | Strategy |
+|--------|--------|--------|----------|
+| Types | `/src/types/` | `/player/src/types/` | **Copy** (subset) |
+| Coordinates | `/src/lib/coordinates.ts` | `/player/src/lib/coordinates.ts` | **Copy** |
+| Config | `/src/lib/config.ts` | `/player/src/lib/config.ts` | **Copy** |
+| PanoramaSphere | `/src/components/` | `/player/src/components/three/` | **Adapt** |
 
-class GamePlayer {
-  constructor(options: GamePlayerOptions);
-
-  // Public API (for future extensions)
-  navigateToNode(nodeId: string): void;
-  getCurrentNode(): Node;
-  destroy(): void; // Cleanup
-}
-```
-
-### 7.2 Preload API Extension
-
-Add to `src/preload/index.ts`:
-
-```typescript
-const electronAPI = {
-  // ... existing handlers
-
-  // Export game
-  exportGame: (projectPath: string, outputPath: string): Promise<{
-    success: boolean;
-    error?: string;
-    outputPath?: string;
-  }> => ipcRenderer.invoke('export-game', projectPath, outputPath),
-};
-```
-
-### 7.3 Navigation Callback Interface
-
-```typescript
-type NavigationCallback = (event: NavigationEvent) => void;
-
-interface NavigationEvent {
-  type: 'navigate' | 'back' | 'forward';
-  fromNodeId: string;
-  toNodeId: string;
-  timestamp: number;
-}
-```
+For MVP, **copy shared code**. Future: Refactor to monorepo if complexity grows.
 
 ---
 
-## 8. Code Reuse Matrix
+## Implementation Roadmap
 
-| Component | Source | Reuse Strategy |
-|-----------|--------|----------------|
-| Coordinate conversions | `lib/coordinates.ts` | ✅ Copy as-is |
-| Constants | `lib/config.ts` | ✅ Copy as-is |
-| Earcut triangulation | `lib/hotspotGeometry.ts` | ✅ Copy, remove React deps |
-| Panorama rendering | `PanoramaSphere.tsx` | 🔄 Adapt to vanilla JS |
-| Hotspot rendering | `HotspotMesh.tsx` | 🔄 Adapt to vanilla JS |
-| Raycasting | `PanoramaSphere.tsx` | 🔄 Extract to utility |
-| OrbitControls setup | `PanoramaSphere.tsx` | ✅ Copy Three.js setup |
-| Project types | `types/project.ts` | ✅ Reuse (shared types) |
+### Phase 7 Revised Steps
 
-**Legend:**
-- ✅ Direct copy
-- 🔄 Adapt/simplify
+1. **Player Project Setup** (0.5 days)
+   - Create `/player` directory
+   - Initialize Vite + React + TypeScript
+   - Install dependencies
 
----
+2. **Core Player Components** (1-2 days)
+   - GameEngine, PanoramaView, PanoramaSphere
+   - HotspotLayer with click handling
+   - Test: Load game.json, display panorama
 
-## 9. Summary & Next Steps
+3. **Navigation System** (1 day)
+   - Zustand gameStore
+   - Hotspot click → navigation
+   - Test: Navigate between nodes
 
-### What We Decided
+4. **Progressive Loading** (1 day)
+   - Texture cache
+   - Asset preloader
+   - Loading screens
 
-1. ✅ **Vanilla JS + Three.js** (no React) - Minimize bundle size
-2. ✅ **Single HTML file** (base64 assets) - Simplicity for MVP
-3. ✅ **Direct reuse** of coordinate/triangulation logic
-4. ✅ **Adapted** panorama/hotspot renderers (remove React)
-5. ✅ **New** GamePlayer orchestrator, export handler
+5. **Export Infrastructure** (2-3 days)
+   - IPC handlers
+   - Game data transformer
+   - Vite build integration
+   - Test: Export from editor
 
-### File Structure Created
+6. **Export Dialog UI** (1 day)
+   - Export dialog in editor
+   - CDN options
+   - Progress indicators
 
-```
-src/renderer/src/player/
-├── core/
-│   ├── GamePlayer.ts
-│   ├── PanoramaRenderer.ts
-│   ├── HotspotRenderer.ts
-│   ├── NavigationManager.ts
-│   └── UIOverlay.ts
-├── utils/
-│   ├── coordinates.ts (copy)
-│   ├── hotspotGeometry.ts (copy)
-│   └── raycasting.ts (new)
-├── build/
-│   ├── bundlePlayer.ts
-│   └── template.html
-└── types/
-    └── player.d.ts
+7. **CDN Support** (1 day)
+   - Asset resolver
+   - CDN URL generation
+   - Cache headers
 
-electron/main/
-└── exportHandlers.ts (new)
-```
+8. **Testing & Polish** (1-2 days)
+   - Deploy to Vercel/Netlify
+   - Test CDN loading
+   - Error handling
 
-### Success Criteria for Phase 7 Step 2
-
-- [x] Clear architecture documented
-- [x] File structure planned
-- [x] Export format decided (Single HTML with base64)
-- [x] Framework decided (Vanilla JS + Three.js)
-- [x] Component relationships defined
-- [x] Reusability strategy outlined
+**Total: 7-10 days**
 
 ---
 
-**Status:** Phase 7 Step 2 COMPLETE ✅
-**Next Step:** Phase 7 Step 3 - Create GamePlayer Component
-**Date:** 2025-11-18
+## Clarifying Questions
+
+Before implementation, please confirm:
+
+1. **CDN Upload**: Manual (user uploads after export) or automated?
+   - **Recommendation**: Manual for MVP
+
+2. **Image Optimization**: Auto-resize panoramas (4K → 2K)?
+   - **Recommendation**: Yes, with checkbox
+
+3. **Save Game**: Auto-save to localStorage?
+   - **Recommendation**: Yes
+
+4. **Debug Mode**: Show current node, FPS overlay?
+   - **Recommendation**: Yes (Ctrl+D toggle)
+
+5. **Deployment Guide**: Auto-generated README?
+   - **Recommendation**: Yes
+
+---
+
+## Summary
+
+This architecture provides:
+
+✅ **Web-first**: Built for Vercel/Netlify/VPS hosting
+✅ **React-based**: Extensible for inventory, dialogs, puzzles
+✅ **CDN-friendly**: Separate assets, optional CDN URLs
+✅ **Progressive loading**: Preload adjacent nodes
+✅ **Performant**: Texture caching, code splitting
+✅ **Extensible**: Plugin architecture for future features
+
+**Status:** Architecture complete ✅
+**Next:** Await user confirmation, then begin implementation
