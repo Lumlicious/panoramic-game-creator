@@ -42,6 +42,7 @@ function GraphViewInner(): JSX.Element {
   const updateNodePosition = useProjectStore((state) => state.updateNodePosition)
   const setSelectedNodeId = useEditorStore((state) => state.setSelectedNodeId)
   const setViewMode = useEditorStore((state) => state.setViewMode)
+  const setDirty = useEditorStore((state) => state.setDirty)
   const shouldFitView = useEditorStore((state) => state.graphView.shouldFitView)
   const clearFitViewTrigger = useEditorStore((state) => state.clearFitViewTrigger)
 
@@ -87,6 +88,7 @@ function GraphViewInner(): JSX.Element {
         if (change.type === 'position' && change.position && !change.dragging) {
           // Only save when drag is complete (dragging = false)
           debouncedUpdatePosition(change.id, change.position)
+          setDirty(true)
         }
       }
     },

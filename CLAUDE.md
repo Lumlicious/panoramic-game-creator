@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Panoramic Game Creator is a desktop Electron application for creating panoramic point-and-click adventure games. Users create nodes with 360° panoramic images, draw polygonal hotspots on the panoramas that link to other nodes, and visualize the node graph.
 
-**Current Status**: Phases 1-6 complete! ✅ Full node management, hotspot drawing, target assignment, and node graph visualization working. Ready for Phase 7 (Project Files & Export).
+**Current Status**: Phases 1-6 complete! ✅ Full node management, hotspot drawing, target assignment, and node graph visualization working. **Strategic Pivot**: Building Game Player (Phase 7) before editor robustness features to complete vertical slice (create → edit → save → **PLAY**).
 
 ### Completed Phases
 
@@ -68,16 +68,34 @@ Panoramic Game Creator is a desktop Electron application for creating panoramic 
   - **Type-Safe Converters**: `graphConverters.ts` transforms project data to React Flow format
   - **Empty State Handling**: User-friendly message when no nodes exist
 
-### Next Phase
+### Current Phase
 
-**Phase 7: Project Files & Robustness** - See **plan.md Phase 7** for complete details.
+**Phase 7: Game Player & Export** ⭐ **IN PROGRESS** - See **plan.md Phase 7 Implementation Checklist** for detailed steps.
+
+- ✅ **Phase 7 Step 1: Verify Safety Features** (2025-11-16)
+  - **Code Review**: Verified IPC handlers, store actions, keyboard shortcuts
+  - **Critical Fix**: isDirty tracking now works for ALL mutations
+  - **Files Modified**: PropertiesPanel.tsx, PanoramaSphere.tsx, GraphView.tsx
+  - **Result**: Save button, unsaved changes dialog now fully functional
+
+**Strategic Rationale:**
+Phases 7 & 8 have been **reordered** to prioritize completing the vertical slice (create → edit → save → **PLAY**) before investing in editor robustness features. Basic save/load already works, so we can now validate the core gameplay experience.
 
 **Goals:**
-- Comprehensive error handling for file operations
-- Project validation on load (detect corruption, missing files)
-- Auto-save with dirty state tracking
-- Recent projects list with file watching
-- Export game as standalone HTML bundle
+- Build standalone game player component (read-only panorama viewer)
+- Implement hotspot click → node navigation
+- Create export functionality (standalone HTML with embedded assets)
+- Test complete vertical slice end-to-end
+- Validate data model works for actual gameplay
+
+**Why This Order:**
+1. Complete vertical slice required to validate product works end-to-end
+2. Prove data model supports gameplay before polishing editor
+3. Basic project persistence already complete (New/Open/Save working)
+4. Early feedback loop on actual game experience
+5. Reduced risk - discover navigation issues early
+
+**Phase 8 (Deferred):** Editor robustness features (Save As, validation, auto-save, recent projects) - Build AFTER player works
 
 ## Essential Reading
 
@@ -480,7 +498,9 @@ If implementation differs from spec, update the spec to reflect reality.
 
 ---
 
-**Status**: Phases 1-6 ✅ Complete | Ready for Phase 7 (Project Files & Robustness) 🎯
-**Last Updated**: 2025-11-13
-**Current Milestone**: Phase 6 committed (d697fed) - Full node graph visualization with React Flow
-**Next Phase**: Phase 7 - Error handling, validation, auto-save, recent projects, and game export (see plan.md Phase 7)
+**Status**: Phase 7 Step 1 ✅ Complete | Building Game Player (Phase 7) 🎯
+**Last Updated**: 2025-11-16
+**Current Progress**: Phase 7 Step 1 complete - Safety features verified and isDirty tracking fixed
+**Strategic Pivot**: Phases 7 & 8 reordered - Building game player FIRST to complete vertical slice (create → play)
+**Next Step**: Phase 7 Step 2 - Plan Player Architecture (see plan.md Phase 7 Implementation Checklist)
+**Recent Fix**: isDirty tracking now works for all mutations (nodes, hotspots, graph positions)

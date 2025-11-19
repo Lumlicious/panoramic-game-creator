@@ -187,6 +187,32 @@ MyAdventure.pgc/
 
 See [TECHNICAL_SPEC.md](./TECHNICAL_SPEC.md#project-file-format) for implementation details.
 
+## Strategic Pivot: Vertical Slice First
+
+**Decision (2025-11-16):** Phases 7 and 8 have been **reordered** to prioritize getting a complete vertical slice (create → edit → save → **PLAY**) before investing in editor robustness features.
+
+### Why Game Player Before Robustness?
+
+1. **Complete Vertical Slice Required**: Cannot validate the product works end-to-end without a playable runtime
+2. **Validate Core Assumptions**: Prove the data model supports gameplay (hotspot navigation, node transitions) before polishing the editor
+3. **Basic Save/Load Already Works**: Phase 7's critical blocker (project persistence) is already implemented - we have New, Open, and Save working
+4. **Early Feedback Loop**: Get feedback on actual game experience sooner, iterate faster
+5. **Reduced Risk**: Discover issues with navigation mechanics early, before investing in editor polish features
+6. **Aligns with MVP Definition**: plan.md success criteria states "User can export a playable game"
+
+### What's Already Complete
+
+- ✅ Phases 1-6: Full editor workflow (create, edit, draw hotspots, assign targets, view graph)
+- ✅ Basic Project Operations: New, Open, Save with IPC handlers
+- ✅ Dirty State Tracking: isDirty flag prevents accidental data loss
+- ✅ Keyboard Shortcuts: Cmd/Ctrl+S, N, O working
+- ✅ Unsaved Changes Dialog: Save/Don't Save/Cancel on New/Open
+
+### Revised Phase Order
+
+- **New Phase 7**: Game Player & Export (was Phase 8) ← **BUILD THIS NEXT**
+- **New Phase 8**: Editor Robustness (was Phase 7) ← Defer until player works
+
 ## Implementation Phases
 
 ### Phase 1: Project Setup ✓
@@ -395,60 +421,103 @@ See [TECHNICAL_SPEC.md](./TECHNICAL_SPEC.md#image-specifications) for complete v
    - Orphaned nodes (no incoming connections)
    - Current selected node highlight
 
-### Phase 7: Project File Operations
-**Goal**: Save and load projects
+### Phase 7: Game Player & Export ⭐ PRIORITY
+**Goal**: Export playable games - complete the vertical slice
 
-1. **Set up Electron IPC handlers**:
-   - `project:new` - Create new project (with confirmation if unsaved changes)
-   - `project:save` - Save current project
-   - `project:saveAs` - Save with new location
-   - `project:open` - Open existing project
-   - `file:pickImage` - Select panorama image
-   - **Error handling**: Return `{success, error}` from all IPC calls
+**Status**: Next phase to implement (after Phases 1-6 complete)
 
-2. **Implement project manager**:
-   - Serialize project to JSON
-   - Create `.pgc` directory structure
-   - Copy panorama files with node ID as filename
-   - Generate thumbnails using sharp
-   - Store relative paths in JSON
-   - Load project and validate:
-     - Check format version compatibility
-     - Verify all images exist
-     - Show warning for missing images but allow opening
-   - Set dirty flag to false after successful save
+1. **Create standalone player component**:
+   - Lightweight panorama viewer (reuse PanoramaViewer code in read-only mode)
+   - Hotspot rendering and interaction
+   - Navigation between nodes (click hotspot → load target node)
+   - Start from startNodeId
+   - Camera controls (OrbitControls for navigation)
+   - Load textures from project assets
 
-3. **File menu integration with keyboard shortcuts**:
-   - New Project (Cmd/Ctrl+N)
-   - Open Project (Cmd/Ctrl+O) - select `.pgc` directory
-   - Save (Cmd/Ctrl+S)
-   - Save As (Cmd/Ctrl+Shift+S)
-   - Recent projects list (using electron-store)
+2. **Export functionality**:
+   - Export dialog with options:
+     - **Option A**: Single HTML file (recommended for small projects)
+       - Embed project JSON inline
+       - Embed panoramas as base64 data URIs
+       - Self-contained, no external dependencies
+     - **Option B**: Web folder (recommended for large projects)
+       - index.html + player.js bundle
+       - assets/ folder with panoramas (not base64)
+       - Can be hosted on web server or opened locally
+   - IPC handler for export operation
+   - Progress indicator for export process
 
-4. **Unsaved changes handling**:
-   - Track dirty flag in editor store
-   - Show confirmation dialog before:
-     - Creating new project
-     - Opening different project
-     - Closing window
-   - Offer to save, discard, or cancel
+3. **Player features**:
+   - Click hotspot to navigate to target node
+   - Smooth transitions between nodes (fade out/in)
+   - Basic UI overlay:
+     - Current node name
+     - Navigation hints (hover over hotspots)
+     - Simple styling (minimal, non-intrusive)
+   - No editing capabilities (read-only)
+   - Responsive design (works on mobile browsers)
 
-5. **Error handling**:
-   - File system errors (permissions, disk full)
-   - JSON parse errors (corrupted project)
-   - Missing images (show warning, allow opening)
-   - Use toast notifications for user-facing errors
-   - Log errors for debugging
+4. **Technical implementation**:
+   - Create `GamePlayer.tsx` component
+   - Create `PlayerUI.tsx` overlay component
+   - Create `exportProject()` function in projectStore
+   - Create IPC handler `project:export`
+   - Generate standalone HTML with embedded Three.js + React (or vanilla JS player)
+   - Test in multiple browsers (Chrome, Firefox, Safari)
 
-**Example Error Handling**:
-```typescript
-const result = await window.electronAPI.project.save(project, path);
-if (!result.success) {
-  showError('Save failed', result.error);
-}
-```
+**Success Criteria**:
+- User can click "Export Game" button
+- Exported HTML file opens in browser
+- Panoramas load and display correctly
+- Clicking hotspots navigates to target nodes
+- Complete vertical slice working: create → edit → save → **PLAY**
 
-See [TECHNICAL_SPEC.md](./TECHNICAL_SPEC.md#error-handling-strategy) for complete error handling patterns.
+See detailed implementation checklist below.
+
+### Phase 8: Editor Robustness (DEFERRED)
+**Goal**: Polish editor with advanced features
+
+**Status**: Defer until Phase 7 (Game Player) is complete and validated
+
+1. **Save As functionality**:
+   - `project:saveAs` IPC handler
+   - Copy all assets to new location
+   - Update projectPath in store
+   - Keyboard shortcut: Cmd/Ctrl+Shift+S
+
+2. **Project validation on load**:
+   - Check format version compatibility (`.pgc-meta/version.txt`)
+   - Verify all panorama files exist
+   - Show warnings for missing images (but allow opening)
+   - Detect corrupted JSON with helpful error messages
+   - Validate data integrity (required fields, structure)
+
+3. **Recent projects list**:
+   - Use electron-store for persistence
+   - Track last 10 opened projects
+   - Display in WelcomeScreen
+   - Update on open/save operations
+   - Remove deleted projects
+
+4. **Unsaved changes on window close**:
+   - Add `before-quit` handler in main process
+   - Show dialog if isDirty is true
+   - Options: Save/Don't Save/Cancel
+   - Prevent quit if user cancels
+   - Platform-specific handling (macOS Cmd+Q, Windows Alt+F4)
+
+5. **Enhanced error handling**:
+   - Disk full errors (ENOSPC) with specific messages
+   - Permission errors (EACCES/EPERM) with guidance
+   - Path traversal prevention (security)
+   - Emergency save on crash (ErrorBoundary)
+   - Save recovery file to Documents folder
+
+6. **Auto-save** (optional, nice-to-have):
+   - Configurable interval (default 5 minutes)
+   - Background save without interrupting work
+   - Visual indicator when auto-saving
+   - Conflict resolution if manual save occurs
 
 **File Format** (project.json):
 ```json
@@ -463,27 +532,6 @@ See [TECHNICAL_SPEC.md](./TECHNICAL_SPEC.md#error-handling-strategy) for complet
   "settings": {...}
 }
 ```
-
-### Phase 8: Basic Game Player/Export
-**Goal**: Export playable games
-
-1. Create standalone player component:
-   - Lightweight panorama viewer
-   - Hotspot rendering and interaction
-   - Navigation between nodes
-   - Start from start node
-2. Export functionality:
-   - Option A: Single HTML file
-     - Embed project JSON
-     - Include panoramas as base64 (small projects)
-   - Option B: Web folder
-     - index.html + player.js
-     - assets/ folder with panoramas
-     - Can be hosted or opened locally
-3. Player features:
-   - Click hotspot to navigate
-   - Smooth transition between nodes
-   - Basic UI (node name, navigation hints)
 
 ## Features Deferred to Later
 
@@ -676,6 +724,330 @@ contextBridge.exposeInMainWorld('electronAPI', {
 3. **Commit often**: Version control after each working feature
 4. **Keep it simple**: Minimal viable implementation first
 5. **Refactor later**: Get it working, then optimize
+
+---
+
+## Phase 7 Implementation Checklist
+
+**Goal**: Build game player and export functionality to complete the vertical slice (create → edit → save → **PLAY**)
+
+### Step 1: Verify Current Safety Features ✅ COMPLETE
+**Objective**: Confirm basic save/load works before building player
+
+**Status**: Completed 2025-11-16
+
+**Tasks:**
+- [x] Code review of IPC handlers (projectHandlers.ts)
+- [x] Code review of store actions (projectStore.ts)
+- [x] Code review of keyboard shortcuts (Toolbar.tsx)
+- [x] Code review of isDirty tracking (editorStore.ts)
+- [x] **FIXED**: isDirty tracking - added setDirty(true) to all mutation operations
+- [x] Verified compilation - all changes HMR updated successfully
+
+**Files Reviewed:**
+- `src/main/ipc/projectHandlers.ts` - IPC handlers ✅
+- `src/renderer/src/stores/projectStore.ts` - save/load actions ✅
+- `src/renderer/src/stores/editorStore.ts` - isDirty flag ✅
+- `src/renderer/src/components/layout/Toolbar.tsx` - keyboard shortcuts ✅
+
+**Files Modified (isDirty Fix):**
+- `src/renderer/src/components/layout/PropertiesPanel.tsx` - Added 5 setDirty(true) calls
+- `src/renderer/src/components/panorama/PanoramaSphere.tsx` - Added 2 setDirty(true) calls
+- `src/renderer/src/components/graph/GraphView.tsx` - Added 1 setDirty(true) call
+
+**What Works:**
+- ✅ New Project creates .pgc directory with assets/panoramas, assets/thumbnails, .pgc-meta
+- ✅ Save Project writes project.json with timestamps
+- ✅ Open Project loads and validates existing .pgc directories
+- ✅ Keyboard shortcuts: Cmd/Ctrl+S (Save), Cmd/Ctrl+N (New), Cmd/Ctrl+O (Open)
+- ✅ Unsaved changes dialog shows on New/Open when isDirty = true
+- ✅ isDirty now tracks ALL mutations (nodes, hotspots, positions, properties)
+
+**Critical Fix Applied:**
+The isDirty flag was only set when creating new nodes. Fixed by adding setDirty(true) to:
+- Node name updates, start node toggle, node deletion
+- Hotspot creation, name/target updates, deletion, vertex dragging
+- Graph node position updates (drag)
+
+**Acceptance Criteria:**
+- [x] Can create new project
+- [x] Can save project (Cmd/Ctrl+S)
+- [x] Can open existing project
+- [x] Dirty flag prevents data loss (NOW FULLY WORKING)
+
+---
+
+### Step 2: Plan Player Architecture
+**Objective**: Design player component structure and export format
+
+**Tasks:**
+- [ ] Review existing PanoramaViewer code to identify reusable parts
+- [ ] Design read-only panorama viewer (no editing)
+- [ ] Plan hotspot click → navigation flow
+- [ ] Choose export format: Single HTML vs Web Folder (start with single HTML)
+- [ ] Design player UI overlay (minimal, non-intrusive)
+- [ ] Plan file structure for player components
+
+**Decisions to Make:**
+- Export format: Start with **single HTML** (simpler, self-contained)
+- Player framework: **Vanilla JS + Three.js** (no React bundle bloat) OR **React** (easier, reuse code)
+- Asset embedding: **Base64 data URIs** for panoramas (works offline)
+
+**Files to Create:**
+- `src/renderer/src/components/player/GamePlayer.tsx` - Main player
+- `src/renderer/src/components/player/PlayerUI.tsx` - UI overlay
+- `src/lib/export/generateHTML.ts` - Export logic
+- `templates/player-template.html` - Standalone HTML template
+
+**Acceptance Criteria:**
+- [ ] Clear architecture documented
+- [ ] File structure planned
+- [ ] Export format decided
+
+---
+
+### Step 3: Create GamePlayer Component
+**Objective**: Build basic panorama viewer for player (read-only mode)
+
+**Tasks:**
+- [ ] Create `src/renderer/src/components/player/GamePlayer.tsx`
+- [ ] Reuse PanoramaViewer code (copy and simplify)
+- [ ] Remove editing features (drawing mode, vertex markers)
+- [ ] Add props: `projectData`, `currentNodeId`, `onNavigate(nodeId)`
+- [ ] Load panorama from node data (equirectangular + cubic support)
+- [ ] Implement OrbitControls for navigation
+- [ ] Handle texture loading and disposal
+- [ ] Add loading state
+
+**Implementation Details:**
+```typescript
+interface GamePlayerProps {
+  projectData: Project  // Full project JSON
+  currentNodeId: string  // Which node to display
+  onNavigate: (targetNodeId: string) => void  // Callback when hotspot clicked
+}
+```
+
+**Files to Create/Modify:**
+- **NEW:** `src/renderer/src/components/player/GamePlayer.tsx`
+- Reference: `src/renderer/src/components/editor/PanoramaViewer.tsx`
+
+**Acceptance Criteria:**
+- [ ] GamePlayer component renders panorama
+- [ ] Camera controls work (orbit, zoom)
+- [ ] Can switch between nodes programmatically
+- [ ] Textures load and dispose correctly
+- [ ] Works with equirectangular and cubic panoramas
+
+---
+
+### Step 4: Implement Hotspot Interaction
+**Objective**: Click hotspot → navigate to target node
+
+**Tasks:**
+- [ ] Render hotspots in GamePlayer (reuse HotspotRenderer)
+- [ ] Add raycasting for hotspot detection
+- [ ] Implement hover effects (highlight on mouseover)
+- [ ] Implement click handler → call `onNavigate(targetNodeId)`
+- [ ] Add cursor change on hover (pointer cursor)
+- [ ] Remove editing features (no vertex markers, no dragging)
+- [ ] Test navigation flow between multiple nodes
+
+**Implementation Details:**
+- Reuse existing hotspot triangulation code
+- Raycaster priority: hotspots only (no sphere clicking)
+- On click: `onNavigate(hotspot.targetNodeId)`
+- Visual feedback: Change hotspot opacity/color on hover
+
+**Files to Create/Modify:**
+- Modify `src/renderer/src/components/player/GamePlayer.tsx`
+- Reuse `src/renderer/src/components/editor/HotspotRenderer.tsx` (read-only version)
+
+**Acceptance Criteria:**
+- [ ] Hotspots render on panorama
+- [ ] Hover highlights hotspot
+- [ ] Click navigates to target node
+- [ ] Navigation works bidirectionally
+- [ ] No console errors during navigation
+
+---
+
+### Step 5: Build Player UI Overlay
+**Objective**: Minimal UI showing current node and navigation hints
+
+**Tasks:**
+- [ ] Create `src/renderer/src/components/player/PlayerUI.tsx`
+- [ ] Display current node name (top-left or top-center)
+- [ ] Show navigation hint on hotspot hover (e.g., "Go to Kitchen")
+- [ ] Add simple styling (semi-transparent background, white text)
+- [ ] Ensure UI doesn't interfere with panorama interaction
+- [ ] Make responsive (works on mobile)
+
+**UI Elements:**
+- **Top bar**: Current node name
+- **Hover tooltip**: Target node name when hovering hotspot
+- **Minimal styling**: Clean, non-intrusive
+
+**Files to Create:**
+- **NEW:** `src/renderer/src/components/player/PlayerUI.tsx`
+
+**Acceptance Criteria:**
+- [ ] Node name displays clearly
+- [ ] Hover tooltips show target node
+- [ ] UI doesn't block panorama interaction
+- [ ] Styling is clean and minimal
+- [ ] Works on desktop and mobile browsers
+
+---
+
+### Step 6: Create Export Dialog & Options
+**Objective**: UI for exporting game with user options
+
+**Tasks:**
+- [ ] Create export dialog component
+- [ ] Add export format selector:
+  - **Single HTML** (recommended for small projects)
+  - **Web Folder** (for large projects, future enhancement)
+- [ ] Add export destination file picker
+- [ ] Add export button to Toolbar
+- [ ] Connect to exportProject() action in projectStore
+- [ ] Show progress indicator during export
+- [ ] Show success/error notifications
+
+**UI Flow:**
+1. User clicks "Export Game" in toolbar
+2. Dialog shows export options
+3. User selects format and destination
+4. Click "Export" button
+5. Progress indicator shows during export
+6. Success toast on completion
+
+**Files to Create/Modify:**
+- **NEW:** `src/renderer/src/components/dialogs/ExportDialog.tsx`
+- Modify `src/renderer/src/components/layout/Toolbar.tsx` - Add Export button
+- Modify `src/renderer/src/stores/projectStore.ts` - Add exportProject() action
+
+**Acceptance Criteria:**
+- [ ] Export button in toolbar
+- [ ] Dialog shows export options
+- [ ] File picker works
+- [ ] Progress indicator during export
+- [ ] Success/error notifications
+
+---
+
+### Step 7: Generate Standalone HTML Export
+**Objective**: Create self-contained HTML file with embedded game
+
+**Tasks:**
+- [ ] Create IPC handler `project:export` in main process
+- [ ] Implement `generateStandaloneHTML()` function
+- [ ] Embed project JSON inline (as JavaScript object)
+- [ ] Embed Three.js library (CDN link or bundled)
+- [ ] Embed panorama images as base64 data URIs
+- [ ] Generate player JavaScript code (vanilla JS or bundled React)
+- [ ] Create HTML template with all assets embedded
+- [ ] Write HTML file to selected destination
+- [ ] Test in browser (open file:// directly)
+
+**Export Format (Single HTML):**
+```html
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Game Title</title>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.min.js"></script>
+</head>
+<body>
+  <div id="game-container"></div>
+  <script>
+    // Embedded project data
+    const PROJECT_DATA = { /* project.json */ };
+
+    // Embedded panoramas (base64)
+    const PANORAMAS = {
+      'node-123': 'data:image/jpeg;base64,...',
+      // ...
+    };
+
+    // Player code
+    // ... (GamePlayer logic in vanilla JS)
+  </script>
+</body>
+</html>
+```
+
+**Files to Create/Modify:**
+- **NEW:** `src/main/ipc/exportHandlers.ts` - IPC handler
+- **NEW:** `src/lib/export/generateHTML.ts` - HTML generation logic
+- **NEW:** `templates/player-template.html` - HTML template
+- Modify `src/main/index.ts` - Register export handlers
+- Modify `src/preload/index.ts` - Add export API
+
+**Technical Challenges:**
+- Converting images to base64 (use sharp or fs.readFile + Buffer.toString('base64'))
+- Minifying player code for smaller file size
+- Handling large panoramas (file size limits)
+
+**Acceptance Criteria:**
+- [ ] Export generates HTML file
+- [ ] HTML file opens in browser without server
+- [ ] Project data embedded correctly
+- [ ] Panoramas display (base64 works)
+- [ ] Player functionality works in exported file
+- [ ] File size reasonable (<50MB for typical project)
+
+---
+
+### Step 8: Test Complete Vertical Slice
+**Objective**: Validate end-to-end workflow from create to play
+
+**Test Workflow:**
+1. **Create**: Create new project
+2. **Add Content**: Add 3+ nodes with panoramas
+3. **Draw Hotspots**: Draw hotspots on each node
+4. **Assign Targets**: Link hotspots to target nodes
+5. **Set Start**: Set start node
+6. **Save**: Save project
+7. **Export**: Export as HTML
+8. **Play**: Open HTML in browser, test navigation
+
+**Test Cases:**
+- [ ] Navigation works in all directions
+- [ ] Start node loads first
+- [ ] Hotspot hover effects work
+- [ ] Clicking hotspots navigates correctly
+- [ ] All panoramas load successfully
+- [ ] No console errors in browser
+- [ ] Works in Chrome, Firefox, Safari
+- [ ] Mobile browser compatibility (basic test)
+
+**Files to Test:**
+- All player components
+- Export functionality
+- Generated HTML output
+
+**Acceptance Criteria:**
+- [ ] Complete vertical slice works end-to-end
+- [ ] Can create → edit → save → export → **PLAY**
+- [ ] Exported game works in browsers
+- [ ] No critical bugs in player or export
+- [ ] Ready for user feedback/testing
+
+---
+
+### Step 9-15: Return to Phase 8 (Editor Robustness)
+**After Phase 7 is complete and validated**, implement Phase 8 features:
+
+9. [ ] **Save As** - Copy project to new location
+10. [ ] **Project Validation** - Check missing images, version compatibility
+11. [ ] **Recent Projects List** - Track and display recent projects
+12. [ ] **Window Close Prevention** - Prompt before closing with unsaved changes
+13. [ ] **Enhanced Error Handling** - Better file system error messages
+14. [ ] **Auto-save** (optional) - Periodic background saves
+15. [ ] **Final Polish** - Bug fixes, UX improvements
+
+---
 
 ## Success Criteria (MVP)
 

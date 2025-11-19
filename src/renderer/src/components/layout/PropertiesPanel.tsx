@@ -27,6 +27,7 @@ export function PropertiesPanel() {
   const selectedNodeId = useEditorStore((state) => state.selectedNodeId)
   const selectedHotspotId = useEditorStore((state) => state.selectedHotspotId)
   const setSelectedHotspotId = useEditorStore((state) => state.setSelectedHotspotId)
+  const setDirty = useEditorStore((state) => state.setDirty)
 
   const getNode = useProjectStore((state) => state.getNode)
   const nodes = useProjectStore((state) => state.nodes)
@@ -59,6 +60,7 @@ export function PropertiesPanel() {
   const handleNodeNameUpdate = () => {
     if (selectedNodeId && nodeName.trim()) {
       updateNode(selectedNodeId, { name: nodeName.trim() })
+      setDirty(true)
     }
   }
 
@@ -71,18 +73,21 @@ export function PropertiesPanel() {
         // For now, just set to empty string to clear
         setStartNode('')
       }
+      setDirty(true)
     }
   }
 
   const handleHotspotNameUpdate = () => {
     if (selectedNodeId && selectedHotspotId && hotspotName.trim()) {
       updateHotspot(selectedNodeId, selectedHotspotId, { name: hotspotName.trim() })
+      setDirty(true)
     }
   }
 
   const handleHotspotTargetChange = (targetNodeId: string) => {
     if (selectedNodeId && selectedHotspotId) {
       updateHotspot(selectedNodeId, selectedHotspotId, { targetNodeId })
+      setDirty(true)
     }
   }
 
@@ -90,6 +95,7 @@ export function PropertiesPanel() {
     if (selectedNodeId && selectedHotspotId) {
       removeHotspot(selectedNodeId, selectedHotspotId)
       setSelectedHotspotId(null)
+      setDirty(true)
     }
   }
 

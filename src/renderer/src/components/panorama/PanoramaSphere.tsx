@@ -42,6 +42,7 @@ export function PanoramaSphere({ panorama, nodeId }: PanoramaSphereProps) {
   const setDrawingMode = useEditorStore((state) => state.setDrawingMode)
   const selectedHotspotId = useEditorStore((state) => state.selectedHotspotId)
   const setSelectedHotspotId = useEditorStore((state) => state.setSelectedHotspotId)
+  const setDirty = useEditorStore((state) => state.setDirty)
 
   // Get project store functions
   const addHotspot = useProjectStore((state) => state.addHotspot)
@@ -92,6 +93,7 @@ export function PanoramaSphere({ panorama, nodeId }: PanoramaSphereProps) {
 
     console.log('Calling updateHotspot')
     updateHotspot(nodeId, selectedHotspot.id, { polygon: newPolygon })
+    setDirty(true)
   }
 
   // Keyboard shortcuts for drawing
@@ -113,6 +115,7 @@ export function PanoramaSphere({ panorama, nodeId }: PanoramaSphereProps) {
         const hotspot = addHotspot(nodeId, drawingPoints)
         if (hotspot) {
           console.log('Created hotspot:', hotspot.id)
+          setDirty(true)
         }
 
         setDrawingPoints([])
