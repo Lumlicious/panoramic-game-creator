@@ -937,18 +937,20 @@ All hotspot interaction features were implemented in Step 3:
 
 ---
 
-### Step 5: Build Export Infrastructure (NEXT)
+### Step 5: Build Export Infrastructure ✅ COMPLETE
 **Objective**: Connect editor to player with export functionality
 
+**Status**: Completed 2025-12-03
+
 **Tasks:**
-- [ ] Create IPC handler `project:export` in main process
-- [ ] Build Project → GameData transformer
-- [ ] Copy panorama assets to export directory
-- [ ] Build player using Vite (`npm run build` in /player)
-- [ ] Create export dialog in editor
-- [ ] Add Export button to Toolbar
-- [ ] Show progress indicator during export
-- [ ] Test exported game in browser
+- [x] Create IPC handler `project:export` in main process
+- [x] Build Project → GameData transformer
+- [x] Copy panorama assets to export directory
+- [x] Build player using Vite (`npm run build` in /player)
+- [x] Create export dialog in editor
+- [x] Add Export button to Toolbar
+- [x] Show progress indicator during export
+- [x] Test exported game in browser
 
 **Export Flow:**
 1. User clicks "Export Game" in editor toolbar
@@ -962,15 +964,15 @@ All hotspot interaction features were implemented in Step 3:
    - Copies built files to export directory
 5. Shows success notification with path to exported game
 
-**Files to Create:**
-- `electron/main/ipc/exportHandlers.ts` - IPC export handler
-- `electron/main/transformers/gameDataTransformer.ts` - Project → GameData
-- `src/renderer/src/components/dialogs/ExportDialog.tsx` - Export UI
+**Files Created:**
+- `src/main/ipc/exportHandlers.ts` - IPC export handler ✅
+- `src/main/transformers/gameDataTransformer.ts` - Project → GameData ✅
+- `src/renderer/src/components/dialogs/ExportDialog.tsx` - Export UI ✅
 
-**Files to Modify:**
-- `electron/main/index.ts` - Register export handlers
-- `electron/preload/index.ts` - Add export API
-- `src/renderer/src/components/layout/Toolbar.tsx` - Add Export button
+**Files Modified:**
+- `src/main/index.ts` - Register export handlers ✅
+- `src/preload/index.ts` - Add export API ✅
+- `src/renderer/src/components/layout/Toolbar.tsx` - Add Export button ✅
 
 **Export Output Structure:**
 ```
@@ -987,17 +989,23 @@ my-adventure/
 ```
 
 **Acceptance Criteria:**
-- [ ] Export button in toolbar
-- [ ] Export dialog works
-- [ ] Game.json generated correctly
-- [ ] Panoramas copied successfully
-- [ ] Vite build completes
-- [ ] Exported game works in browser
-- [ ] User can open index.html and play
+- [x] Export button in toolbar
+- [x] Export dialog works
+- [x] Game.json generated correctly
+- [x] Panoramas copied successfully
+- [x] Vite build completes
+- [x] Exported game works in browser
+- [x] User can open index.html and play
+
+**Key Implementation Details:**
+- Fixed npm spawn ENOENT issue by running Node.js/Vite directly (no shell)
+- Export dialog shows progress spinner during build
+- Success state shows export path with copy-to-clipboard button
+- Error handling for empty projects, missing start node (warning)
 
 ---
 
-### Step 6: Test Complete Vertical Slice
+### Step 6: Test Complete Vertical Slice (NEXT)
 **Objective**: UI for exporting game with user options
 
 **Tasks:**
