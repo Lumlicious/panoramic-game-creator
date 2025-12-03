@@ -189,7 +189,9 @@ async function handleSaveProject(
  * 3. Read project.json
  * 4. Return project data and path
  */
-async function handleOpenProject(): Promise<IPCResponse<{ projectPath: string; data: ProjectData }>> {
+async function handleOpenProject(): Promise<
+  IPCResponse<{ projectPath: string; data: ProjectData }>
+> {
   try {
     // Step 1: Show open dialog
     const result = await dialog.showOpenDialog({

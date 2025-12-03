@@ -1,11 +1,6 @@
 import { PlusIcon, FolderOpenIcon } from 'lucide-react'
 import { useProjectStore } from '@/stores/projectStore'
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription
-} from '@/components/ui/card'
+import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 
 /**
  * WelcomeScreen Component
@@ -39,9 +34,7 @@ export function WelcomeScreen() {
         {/* Header Section */}
         <div className="text-center space-y-2">
           <h1 className="text-3xl font-bold">Panoramic Game Creator</h1>
-          <p className="text-muted-foreground">
-            Create immersive 360° adventure games
-          </p>
+          <p className="text-muted-foreground">Create immersive 360° adventure games</p>
         </div>
 
         {/* Action Cards */}

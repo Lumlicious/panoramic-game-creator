@@ -23,9 +23,7 @@ export function HotspotDrawing({ points }: HotspotDrawingProps) {
   if (points.length === 0) return null
 
   // Convert spherical points to 3D cartesian for rendering
-  const cartesianPoints = points.map((p) =>
-    sphericalToCartesian(p, SPHERE_CONFIG.HOTSPOT_RADIUS)
-  )
+  const cartesianPoints = points.map((p) => sphericalToCartesian(p, SPHERE_CONFIG.HOTSPOT_RADIUS))
 
   return (
     <group>
@@ -33,12 +31,7 @@ export function HotspotDrawing({ points }: HotspotDrawingProps) {
       {cartesianPoints.map((point, index) => (
         <mesh key={index} position={[point.x, point.y, point.z]}>
           <sphereGeometry args={[3, 16, 16]} />
-          <meshBasicMaterial
-            color="#00ff00"
-            opacity={0.9}
-            transparent
-            depthTest={false}
-          />
+          <meshBasicMaterial color="#00ff00" opacity={0.9} transparent depthTest={false} />
         </mesh>
       ))}
 

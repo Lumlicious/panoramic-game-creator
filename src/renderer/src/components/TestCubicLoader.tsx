@@ -95,9 +95,7 @@ export function TestCubicLoader() {
   return (
     <Card className="p-4">
       <h3 className="text-sm font-semibold mb-3">Test Cubic Panorama Loader</h3>
-      <p className="text-xs text-muted-foreground mb-4">
-        Load 6 images for cubic panorama testing
-      </p>
+      <p className="text-xs text-muted-foreground mb-4">Load 6 images for cubic panorama testing</p>
 
       <div className="space-y-3">
         {faceLabels.map(({ key, label }) => (
@@ -109,9 +107,7 @@ export function TestCubicLoader() {
               onChange={(e) => handleFileSelect(key, e)}
               className="block w-full text-xs file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
             />
-            {faces[key] && (
-              <p className="text-xs text-green-600">✓ Loaded</p>
-            )}
+            {faces[key] && <p className="text-xs text-green-600">✓ Loaded</p>}
           </div>
         ))}
       </div>

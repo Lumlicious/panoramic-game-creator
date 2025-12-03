@@ -72,14 +72,22 @@ export function PanoramaView({ currentNode, isLoading, onHotspotClick }: Panoram
         }}
         gl={{
           antialias: true,
-          alpha: false
+          alpha: false,
+          powerPreference: 'high-performance'
         }}
+        dpr={[1, 2]} // Limit pixel ratio for better performance on high-DPI screens
       >
         {/* Ambient light */}
         <ambientLight intensity={1} />
 
         {/* Panorama sphere with texture */}
-        <PanoramaSphere textureUrl={currentNode?.panorama.url} />
+        {currentNode && (
+          <PanoramaSphere
+            type={currentNode.panorama.type}
+            textureUrl={currentNode.panorama.url}
+            cubicFaces={currentNode.panorama.faces}
+          />
+        )}
 
         {/* Hotspots layer */}
         {currentNode && (

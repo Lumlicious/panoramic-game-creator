@@ -62,7 +62,12 @@ function GraphViewInner(): JSX.Element {
   }, [projectEdges, setEdges])
 
   // Debug: Log what we're rendering
-  console.log('GraphView rendering:', nodes.length, 'nodes', nodes.map(n => ({ id: n.id, pos: n.position })))
+  console.log(
+    'GraphView rendering:',
+    nodes.length,
+    'nodes',
+    nodes.map((n) => ({ id: n.id, pos: n.position }))
+  )
 
   /**
    * Throttled position update to avoid excessive store mutations

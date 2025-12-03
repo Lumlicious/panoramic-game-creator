@@ -4,12 +4,11 @@
  * Renders a single clickable hotspot on the panorama sphere
  */
 
-import { useState, useMemo } from 'react'
+import { useMemo } from 'react'
 import { ThreeEvent } from '@react-three/fiber'
 import * as THREE from 'three'
 import type { GameHotspot } from '@/types'
 import { triangulateSphericalPolygon } from '@/lib/triangulation'
-import { HOTSPOT_STYLE } from '@/lib/config'
 
 interface HotspotMeshProps {
   hotspot: GameHotspot
@@ -24,8 +23,6 @@ export function HotspotMesh({
   onPointerEnter,
   onPointerLeave
 }: HotspotMeshProps) {
-  const [isHovered, setIsHovered] = useState(false)
-
   // Triangulate polygon geometry (memoized)
   const geometry = useMemo(() => {
     if (hotspot.polygon.length < 3) return null
@@ -45,23 +42,19 @@ export function HotspotMesh({
     onClick?.(hotspot)
   }
 
-  // Handle hover
+  // Handle hover - only change cursor
   const handlePointerEnter = (event: ThreeEvent<PointerEvent>) => {
     event.stopPropagation()
-    setIsHovered(true)
     onPointerEnter?.()
     document.body.style.cursor = 'pointer'
   }
 
   const handlePointerLeave = () => {
-    setIsHovered(false)
     onPointerLeave?.()
     document.body.style.cursor = 'auto'
   }
 
-  // Dynamic opacity based on hover state
-  const opacity = isHovered ? HOTSPOT_STYLE.hoverOpacity : HOTSPOT_STYLE.opacity
-
+  // Hotspots are completely invisible - only cursor changes on hover
   return (
     <mesh
       geometry={geometry}
@@ -70,9 +63,8 @@ export function HotspotMesh({
       onPointerLeave={handlePointerLeave}
     >
       <meshBasicMaterial
-        color={HOTSPOT_STYLE.fillColor}
         transparent
-        opacity={opacity}
+        opacity={0}
         side={THREE.DoubleSide}
         depthWrite={false}
       />

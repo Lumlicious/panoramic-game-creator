@@ -26,6 +26,18 @@ export interface GameHotspot {
 }
 
 /**
+ * Cubic panorama face URLs
+ */
+export interface CubicFaces {
+  front: string
+  back: string
+  left: string
+  right: string
+  top: string
+  bottom: string
+}
+
+/**
  * Game node - a single panorama scene
  */
 export interface GameNode {
@@ -33,7 +45,8 @@ export interface GameNode {
   name: string
   panorama: {
     type: 'equirectangular' | 'cubic'
-    url: string // Relative path OR CDN URL
+    url?: string // For equirectangular: relative path OR CDN URL
+    faces?: CubicFaces // For cubic: 6 face URLs
   }
   hotspots: GameHotspot[]
 }

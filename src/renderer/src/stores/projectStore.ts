@@ -9,11 +9,7 @@ import type {
   ProjectSettings
 } from '@/types'
 import type { GraphLayoutData } from '@/types/graph'
-import {
-  importPanoramaForNode,
-  replacePanoramaForNode,
-  type PanoramaType
-} from '@/lib/imageImport'
+import { importPanoramaForNode, replacePanoramaForNode, type PanoramaType } from '@/lib/imageImport'
 import { calculateInitialNodePosition } from '@/lib/graphUtils'
 
 /**
@@ -116,9 +112,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   updateNode: (id, updates) => {
     set((state) => ({
-      nodes: state.nodes.map((node) =>
-        node.id === id ? { ...node, ...updates } : node
-      )
+      nodes: state.nodes.map((node) => (node.id === id ? { ...node, ...updates } : node))
     }))
   },
 
@@ -309,9 +303,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   removeHotspot: (nodeId, hotspotId) => {
     set((state) => ({
       nodes: state.nodes.map((n) =>
-        n.id === nodeId
-          ? { ...n, hotspots: n.hotspots.filter((h) => h.id !== hotspotId) }
-          : n
+        n.id === nodeId ? { ...n, hotspots: n.hotspots.filter((h) => h.id !== hotspotId) } : n
       )
     }))
   },

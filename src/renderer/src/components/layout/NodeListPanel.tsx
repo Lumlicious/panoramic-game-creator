@@ -69,9 +69,7 @@ function AddNodeDialog({ open, onOpenChange, onNodeCreated }: AddNodeDialogProps
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Add New Node</DialogTitle>
-          <DialogDescription>
-            Create a new node by importing a panoramic image.
-          </DialogDescription>
+          <DialogDescription>Create a new node by importing a panoramic image.</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
@@ -194,9 +192,7 @@ export function NodeListPanel() {
                     {/* Node Info */}
                     <div className="p-3">
                       <h3 className="text-sm font-medium truncate">{node.name}</h3>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {node.panorama.type}
-                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">{node.panorama.type}</p>
                       <p className="text-xs text-muted-foreground">
                         {node.hotspots.length} hotspots
                       </p>

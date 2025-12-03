@@ -1,11 +1,12 @@
 /**
  * PanoramaSphere Component
  *
- * Renders 360° panoramic sphere with texture (read-only, no editing)
+ * Renders 360° panoramic imagery (read-only, no editing)
  * Simplified version of editor's PanoramaSphere
  *
  * Features:
- * - Equirectangular panorama support
+ * - Equirectangular panorama support (sphere geometry)
+ * - Cubic panorama support (box geometry with 6 face textures)
  * - OrbitControls for camera rotation
  * - Texture loading and disposal
  */
@@ -14,12 +15,23 @@ import { useEffect, useState, useRef } from 'react'
 import { OrbitControls } from '@react-three/drei'
 import * as THREE from 'three'
 import { SPHERE_CONFIG } from '@/lib/config'
+import type { CubicFaces } from '@/types/game'
 
 interface PanoramaSphereProps {
   /**
-   * URL to panorama texture (relative or absolute)
+   * Panorama type
+   */
+  type: 'equirectangular' | 'cubic'
+
+  /**
+   * URL to panorama texture (for equirectangular)
    */
   textureUrl?: string
+
+  /**
+   * Face URLs for cubic panorama
+   */
+  cubicFaces?: CubicFaces
 
   /**
    * Callback when sphere is clicked (for debugging)
@@ -27,13 +39,14 @@ interface PanoramaSphereProps {
   onClick?: (point: THREE.Vector3) => void
 }
 
-export function PanoramaSphere({ textureUrl, onClick }: PanoramaSphereProps) {
+export function PanoramaSphere({ type, textureUrl, cubicFaces, onClick }: PanoramaSphereProps) {
   const [loadedTexture, setLoadedTexture] = useState<THREE.Texture | null>(null)
+  const [cubicTextures, setCubicTextures] = useState<THREE.Texture[] | null>(null)
   const meshRef = useRef<THREE.Mesh>(null)
 
-  // Load texture when URL changes
+  // Load equirectangular texture
   useEffect(() => {
-    if (!textureUrl) {
+    if (type !== 'equirectangular' || !textureUrl) {
       setLoadedTexture((prev) => {
         prev?.dispose()
         return null
@@ -45,70 +58,160 @@ export function PanoramaSphere({ textureUrl, onClick }: PanoramaSphereProps) {
     loader.load(
       textureUrl,
       (texture) => {
-        // Configure texture
         texture.colorSpace = THREE.SRGBColorSpace
         texture.minFilter = THREE.LinearFilter
         texture.magFilter = THREE.LinearFilter
 
-        // Dispose old texture and set new one
         setLoadedTexture((prev) => {
           prev?.dispose()
           return texture
         })
       },
-      undefined, // Progress callback - not needed
+      undefined,
       (error) => {
-        console.error('[PanoramaSphere] Error loading texture:', {
+        console.error('[PanoramaSphere] Error loading equirectangular texture:', {
           url: textureUrl,
           error: error
         })
       }
     )
-  }, [textureUrl])
+  }, [type, textureUrl])
 
-  // Dispose texture on unmount
+  // Load cubic textures (6 faces)
+  useEffect(() => {
+    if (type !== 'cubic' || !cubicFaces) {
+      setCubicTextures((prev) => {
+        prev?.forEach((t) => t.dispose())
+        return null
+      })
+      return
+    }
+
+    const loader = new THREE.TextureLoader()
+
+    // Match editor's face order: [left, right, top, bottom, front, back]
+    // BoxGeometry faces order: [+X, -X, +Y, -Y, +Z, -Z]
+    // When viewing from inside, left and right are swapped
+    const faceUrls = [
+      cubicFaces.left, // +X
+      cubicFaces.right, // -X
+      cubicFaces.top, // +Y
+      cubicFaces.bottom, // -Y
+      cubicFaces.front, // +Z
+      cubicFaces.back // -Z
+    ]
+
+    const textures: THREE.Texture[] = []
+    let loadedCount = 0
+    let hasError = false
+
+    faceUrls.forEach((url, index) => {
+      loader.load(
+        url,
+        (texture) => {
+          texture.colorSpace = THREE.SRGBColorSpace
+          texture.minFilter = THREE.LinearFilter
+          texture.magFilter = THREE.LinearFilter
+
+          // Flip texture horizontally to fix mirroring when viewed from inside
+          // Apply same transformation to ALL faces (matching editor behavior)
+          texture.wrapS = THREE.RepeatWrapping
+          texture.repeat.x = -1
+          texture.offset.x = 1
+
+          textures[index] = texture
+          loadedCount++
+
+          if (loadedCount === 6 && !hasError) {
+            setCubicTextures((prev) => {
+              prev?.forEach((t) => t.dispose())
+              return textures
+            })
+          }
+        },
+        undefined,
+        (error) => {
+          hasError = true
+          console.error('[PanoramaSphere] Error loading cubic face:', {
+            url,
+            index,
+            error
+          })
+        }
+      )
+    })
+  }, [type, cubicFaces])
+
+  // Dispose textures on unmount
   useEffect(() => {
     return () => {
       loadedTexture?.dispose()
+      cubicTextures?.forEach((t) => t.dispose())
     }
-  }, [loadedTexture])
+  }, [loadedTexture, cubicTextures])
 
-  // Handle click on sphere
+  // Handle click on mesh
   const handleClick = (event: any) => {
     if (onClick && event.point) {
       onClick(event.point)
     }
   }
 
-  return (
-    <>
-      {/* Panorama Sphere - Only render when texture is loaded */}
-      {loadedTexture && (
-        <mesh
-          ref={meshRef}
-          scale={[-1, 1, 1]} // Invert to view from inside
-          onClick={handleClick}
-        >
+  // Render equirectangular panorama (sphere)
+  if (type === 'equirectangular' && loadedTexture) {
+    return (
+      <>
+        <mesh ref={meshRef} scale={[-1, 1, 1]} onClick={handleClick}>
           <sphereGeometry
             args={[SPHERE_CONFIG.RADIUS, SPHERE_CONFIG.SEGMENTS, SPHERE_CONFIG.SEGMENTS]}
           />
           <meshBasicMaterial side={THREE.BackSide} map={loadedTexture} />
         </mesh>
-      )}
+        <PanoramaControls />
+      </>
+    )
+  }
 
-      {/* OrbitControls for camera rotation */}
-      <OrbitControls
-        makeDefault
-        enablePan={false}
-        enableZoom={false}
-        enableRotate={true}
-        enableDamping={true}
-        dampingFactor={0.05}
-        rotateSpeed={-0.5}
-        minPolarAngle={0}
-        maxPolarAngle={Math.PI}
-        target={[0, 0, 0]}
-      />
-    </>
+  // Render cubic panorama (box with 6 materials)
+  if (type === 'cubic' && cubicTextures && cubicTextures.length === 6) {
+    const materials = cubicTextures.map(
+      (texture) => new THREE.MeshBasicMaterial({ map: texture, side: THREE.BackSide })
+    )
+
+    return (
+      <>
+        <mesh ref={meshRef} onClick={handleClick}>
+          <boxGeometry
+            args={[SPHERE_CONFIG.RADIUS * 2, SPHERE_CONFIG.RADIUS * 2, SPHERE_CONFIG.RADIUS * 2]}
+          />
+          <primitive object={materials} attach="material" />
+        </mesh>
+        <PanoramaControls />
+      </>
+    )
+  }
+
+  // Still loading - just render controls
+  return <PanoramaControls />
+}
+
+/**
+ * Shared OrbitControls component
+ * Optimized for performance with smoother damping
+ */
+function PanoramaControls() {
+  return (
+    <OrbitControls
+      makeDefault
+      enablePan={false}
+      enableZoom={false}
+      enableRotate={true}
+      enableDamping={true}
+      dampingFactor={0.1} // Higher = more responsive (was 0.05)
+      rotateSpeed={-0.4} // Slightly slower for smoother feel
+      minPolarAngle={0.1} // Prevent looking straight up (reduces jitter)
+      maxPolarAngle={Math.PI - 0.1} // Prevent looking straight down
+      target={[0, 0, 0]}
+    />
   )
 }

@@ -133,6 +133,23 @@ export interface FileAPI {
 }
 
 /**
+ * Export options
+ */
+export interface ExportOptions {
+  projectPath: string
+  exportPath: string
+  projectData: ProjectData
+}
+
+/**
+ * Export result
+ */
+export interface ExportResult {
+  exportPath: string
+  gameUrl: string // Path to index.html
+}
+
+/**
  * Project API exposed to renderer process
  */
 export interface ProjectAPI {
@@ -155,4 +172,22 @@ export interface ProjectAPI {
    * Opens dialog to select .pgc directory, loads project.json
    */
   openProject: () => Promise<IPCResponse<OpenProjectResult>>
+}
+
+/**
+ * Export API exposed to renderer process
+ */
+export interface ExportAPI {
+  /**
+   * Choose export destination folder
+   * Opens dialog to select export destination
+   */
+  chooseExportDestination: () => Promise<IPCResponse<string>>
+
+  /**
+   * Export project as playable web game
+   *
+   * @param options - Export options
+   */
+  exportProject: (options: ExportOptions) => Promise<IPCResponse<ExportResult>>
 }

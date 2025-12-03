@@ -20,20 +20,31 @@ interface VertexMarkersProps {
   onDragEnd?: () => void
 }
 
-export function VertexMarkers({ points, onUpdateVertex, sphereMesh, onDragStart, onDragEnd }: VertexMarkersProps) {
+export function VertexMarkers({
+  points,
+  onUpdateVertex,
+  sphereMesh,
+  onDragStart,
+  onDragEnd
+}: VertexMarkersProps) {
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null)
   const { camera, gl } = useThree()
   const raycaster = useRef(new THREE.Raycaster())
 
   // Convert spherical points to 3D cartesian for rendering
-  const cartesianPoints = points.map((p) =>
-    sphericalToCartesian(p, SPHERE_CONFIG.HOTSPOT_RADIUS + 1) // Slightly outside to be visible
+  const cartesianPoints = points.map(
+    (p) => sphericalToCartesian(p, SPHERE_CONFIG.HOTSPOT_RADIUS + 1) // Slightly outside to be visible
   )
 
   // Handle pointer move on canvas (attached via useEffect)
   const handleCanvasPointerMove = useCallback(
     (event: PointerEvent) => {
-      console.log('handleCanvasPointerMove called, draggingIndex:', draggingIndex, 'sphereMesh:', !!sphereMesh)
+      console.log(
+        'handleCanvasPointerMove called, draggingIndex:',
+        draggingIndex,
+        'sphereMesh:',
+        !!sphereMesh
+      )
 
       if (draggingIndex === null || !sphereMesh) return
 

@@ -19,15 +19,11 @@ interface HotspotLayerProps {
   onHotspotClick?: (hotspot: GameHotspot) => void
 }
 
-export function HotspotLayer({ hotspots, onHotspotClick }: HotspotLayerProps) {
+export function HotspotLayer({ hotspots, onHotspotClick }: HotspotLayerProps): JSX.Element {
   return (
     <>
       {hotspots.map((hotspot) => (
-        <HotspotMesh
-          key={hotspot.id}
-          hotspot={hotspot}
-          onClick={onHotspotClick}
-        />
+        <HotspotMesh key={hotspot.id} hotspot={hotspot} onClick={onHotspotClick} />
       ))}
     </>
   )

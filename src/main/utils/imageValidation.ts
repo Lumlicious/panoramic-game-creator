@@ -219,10 +219,7 @@ export async function validateCubicFace(
  *
  * Creates a 200x100 JPEG thumbnail for use in the node list panel
  */
-export async function generateThumbnail(
-  sourcePath: string,
-  outputPath: string
-): Promise<void> {
+export async function generateThumbnail(sourcePath: string, outputPath: string): Promise<void> {
   await sharp(sourcePath)
     .resize(200, 100, {
       fit: 'cover',

@@ -5,6 +5,7 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { registerFileHandlers } from './ipc/fileHandlers'
 import { registerProjectHandlers } from './ipc/projectHandlers'
+import { registerExportHandlers } from './ipc/exportHandlers'
 
 function createWindow(): void {
   // Create the browser window.
@@ -84,6 +85,7 @@ app.whenReady().then(() => {
   // Register IPC handlers
   registerFileHandlers()
   registerProjectHandlers()
+  registerExportHandlers()
 
   createWindow()
 

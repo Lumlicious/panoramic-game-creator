@@ -27,9 +27,7 @@ export function triangulateSphericalPolygon(polygon: SphericalPoint[]): THREE.Bu
   }
 
   // Convert to 3D points on sphere surface
-  const vertices3D = polygon.map((p) =>
-    sphericalToCartesian(p, SPHERE_CONFIG.HOTSPOT_RADIUS)
-  )
+  const vertices3D = polygon.map((p) => sphericalToCartesian(p, SPHERE_CONFIG.HOTSPOT_RADIUS))
 
   // Calculate centroid for tangent plane
   const centroid = new THREE.Vector3()

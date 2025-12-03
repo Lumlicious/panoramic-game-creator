@@ -51,11 +51,7 @@ export const CustomNodeCard = memo(({ data, selected }: NodeProps<GraphNodeData>
         {/* Thumbnail */}
         <div className="relative aspect-[2/1] overflow-hidden bg-slate-800">
           {thumbnailUrl ? (
-            <img
-              src={thumbnailUrl}
-              alt={data.name}
-              className="h-full w-full object-cover"
-            />
+            <img src={thumbnailUrl} alt={data.name} className="h-full w-full object-cover" />
           ) : (
             <div className="flex h-full items-center justify-center text-slate-500 text-xs">
               No Image

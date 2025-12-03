@@ -1,6 +1,12 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
-import type { FileAPI, ProjectAPI, ProjectData } from '../shared/types/ipc'
+import type {
+  FileAPI,
+  ProjectAPI,
+  ExportAPI,
+  ProjectData,
+  ExportOptions
+} from '../shared/types/ipc'
 
 // Custom APIs for renderer
 const api = {}
@@ -27,6 +33,12 @@ const projectAPI: ProjectAPI = {
   openProject: () => ipcRenderer.invoke('project:open')
 }
 
+// Export API - exposes export operations to renderer
+const exportAPI: ExportAPI = {
+  chooseExportDestination: () => ipcRenderer.invoke('export:chooseDestination'),
+  exportProject: (options: ExportOptions) => ipcRenderer.invoke('export:project', options)
+}
+
 // Use `contextBridge` APIs to expose Electron APIs to
 // renderer only if context isolation is enabled, otherwise
 // just add to the DOM global.
@@ -36,6 +48,7 @@ if (process.contextIsolated) {
     contextBridge.exposeInMainWorld('api', api)
     contextBridge.exposeInMainWorld('fileAPI', fileAPI)
     contextBridge.exposeInMainWorld('projectAPI', projectAPI)
+    contextBridge.exposeInMainWorld('exportAPI', exportAPI)
   } catch (error) {
     console.error(error)
   }
@@ -48,4 +61,6 @@ if (process.contextIsolated) {
   window.fileAPI = fileAPI
   // @ts-ignore (define in dts)
   window.projectAPI = projectAPI
+  // @ts-ignore (define in dts)
+  window.exportAPI = exportAPI
 }

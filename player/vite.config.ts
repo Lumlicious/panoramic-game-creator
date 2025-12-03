@@ -4,6 +4,8 @@ import path from 'path'
 
 export default defineConfig({
   plugins: [react()],
+  // Use relative paths so exported games work from any directory
+  base: './',
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src')
@@ -16,8 +18,8 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          'vendor': ['react', 'react-dom'],
-          'three': ['three', '@react-three/fiber', '@react-three/drei']
+          vendor: ['react', 'react-dom'],
+          three: ['three', '@react-three/fiber', '@react-three/drei']
         }
       }
     }

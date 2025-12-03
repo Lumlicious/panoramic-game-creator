@@ -71,11 +71,7 @@ export function detectCycles(nodes: Node[]): string[][] {
  * Find shortest path between two nodes
  * Returns array of node IDs or null if no path exists
  */
-export function findShortestPath(
-  nodes: Node[],
-  startId: string,
-  endId: string
-): string[] | null {
+export function findShortestPath(nodes: Node[], startId: string, endId: string): string[] | null {
   if (startId === endId) return [startId]
 
   const queue: Array<{ nodeId: string; path: string[] }> = [{ nodeId: startId, path: [startId] }]

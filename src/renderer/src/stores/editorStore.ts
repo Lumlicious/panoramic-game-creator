@@ -64,19 +64,22 @@ export const useEditorStore = create<EditorState>((set) => ({
 
   setViewMode: (mode) => set({ viewMode: mode }),
 
-  setSelectedNodeId: (nodeId) => set({
-    selectedNodeId: nodeId,
-    selectedHotspotId: null // Clear hotspot selection when changing nodes
-  }),
+  setSelectedNodeId: (nodeId) =>
+    set({
+      selectedNodeId: nodeId,
+      selectedHotspotId: null // Clear hotspot selection when changing nodes
+    }),
 
-  setSelectedHotspotId: (hotspotId) => set({
-    selectedHotspotId: hotspotId
-  }),
+  setSelectedHotspotId: (hotspotId) =>
+    set({
+      selectedHotspotId: hotspotId
+    }),
 
-  setDrawingMode: (mode) => set({
-    drawingMode: mode,
-    selectedHotspotId: mode === 'drawing' ? null : undefined // Clear selection when starting to draw
-  }),
+  setDrawingMode: (mode) =>
+    set({
+      drawingMode: mode,
+      selectedHotspotId: mode === 'drawing' ? null : undefined // Clear selection when starting to draw
+    }),
 
   setDirty: (dirty) => set({ isDirty: dirty }),
 

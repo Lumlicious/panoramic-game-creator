@@ -163,12 +163,16 @@ export function PanoramaSphere({ panorama, nodeId }: PanoramaSphereProps) {
     } else {
       // Otherwise just log for testing
       console.log('Sphere clicked at:')
-      console.log('  Cartesian:', { x: point.x.toFixed(2), y: point.y.toFixed(2), z: point.z.toFixed(2) })
+      console.log('  Cartesian:', {
+        x: point.x.toFixed(2),
+        y: point.y.toFixed(2),
+        z: point.z.toFixed(2)
+      })
       console.log('  Spherical:', {
         theta: spherical.theta.toFixed(4),
         phi: spherical.phi.toFixed(4),
-        thetaDeg: (spherical.theta * 180 / Math.PI).toFixed(2) + '°',
-        phiDeg: (spherical.phi * 180 / Math.PI).toFixed(2) + '°'
+        thetaDeg: ((spherical.theta * 180) / Math.PI).toFixed(2) + '°',
+        phiDeg: ((spherical.phi * 180) / Math.PI).toFixed(2) + '°'
       })
     }
   }
@@ -413,11 +417,7 @@ function FovZoomHandler() {
   useFrame(() => {
     if (camera instanceof THREE.PerspectiveCamera) {
       // Constrain FOV to min/max range
-      camera.fov = THREE.MathUtils.clamp(
-        camera.fov,
-        CAMERA_CONFIG.FOV_MIN,
-        CAMERA_CONFIG.FOV_MAX
-      )
+      camera.fov = THREE.MathUtils.clamp(camera.fov, CAMERA_CONFIG.FOV_MIN, CAMERA_CONFIG.FOV_MAX)
 
       // Update projection matrix after FOV change
       camera.updateProjectionMatrix()

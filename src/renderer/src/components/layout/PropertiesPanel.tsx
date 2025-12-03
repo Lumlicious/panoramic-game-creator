@@ -233,9 +233,7 @@ export function PropertiesPanel() {
                 {selectedNode.hotspots.length > 0 ? (
                   <div className="space-y-1 max-h-40 overflow-y-auto">
                     {selectedNode.hotspots.map((hotspot) => {
-                      const targetNode = hotspot.targetNodeId
-                        ? getNode(hotspot.targetNodeId)
-                        : null
+                      const targetNode = hotspot.targetNodeId ? getNode(hotspot.targetNodeId) : null
 
                       return (
                         <button

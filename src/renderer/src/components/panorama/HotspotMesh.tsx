@@ -66,9 +66,7 @@ export function HotspotMesh({
   }, [outline])
 
   // Adjust opacity based on hover/select state
-  const fillOpacity = isHovered
-    ? Math.min(hotspot.style.opacity * 1.5, 1.0)
-    : hotspot.style.opacity
+  const fillOpacity = isHovered ? Math.min(hotspot.style.opacity * 1.5, 1.0) : hotspot.style.opacity
 
   // Update material opacity for hover
   if (mesh.material instanceof THREE.Material) {

@@ -11,10 +11,18 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
-  AlertDialogTitle,
+  AlertDialogTitle
 } from '@/components/ui/alert-dialog'
-import { FileIcon, FolderOpenIcon, SaveIcon, PlusIcon, PenToolIcon } from 'lucide-react'
+import {
+  FileIcon,
+  FolderOpenIcon,
+  SaveIcon,
+  PlusIcon,
+  PenToolIcon,
+  PackageIcon
+} from 'lucide-react'
 import { showSuccess, showError } from '@/lib/toast'
+import { ExportDialog } from '@/components/dialogs/ExportDialog'
 
 /**
  * Toolbar Component
@@ -24,15 +32,19 @@ import { showSuccess, showError } from '@/lib/toast'
  * - View mode toggle (Editor / Graph)
  */
 
-export function Toolbar() {
+export function Toolbar(): JSX.Element {
   const { viewMode, setViewMode, isDirty, setDirty, drawingMode, setDrawingMode } = useEditorStore()
 
   // Project store integration
-  const { projectName, newProject, openProject, saveProject } = useProjectStore()
+  const { projectName, projectPath, nodes, newProject, openProject, saveProject } =
+    useProjectStore()
 
   // Unsaved changes dialog state
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false)
   const [pendingAction, setPendingAction] = useState<'new' | 'open' | null>(null)
+
+  // Export dialog state
+  const [showExportDialog, setShowExportDialog] = useState(false)
 
   // File operation handlers
   const handleNew = useCallback(async () => {
@@ -160,7 +172,7 @@ export function Toolbar() {
 
   // Keyboard shortcuts
   useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
+    const handleKeyDown = (event: KeyboardEvent): void => {
       // Detect platform for Cmd (Mac) vs Ctrl (Windows/Linux)
       const isMac = navigator.platform.toUpperCase().includes('MAC')
       const modKey = isMac ? event.metaKey : event.ctrlKey
@@ -197,7 +209,7 @@ export function Toolbar() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [handleSave, handleNew, handleOpen])
 
-  const handleToggleDrawing = () => {
+  const handleToggleDrawing = (): void => {
     if (drawingMode === 'drawing') {
       setDrawingMode('select')
     } else {
@@ -205,58 +217,69 @@ export function Toolbar() {
     }
   }
 
+  // Handle export dialog
+  const handleExport = useCallback(() => {
+    setShowExportDialog(true)
+  }, [])
+
+  // Determine if export should be disabled
+  const isExportDisabled = !projectPath || nodes.length === 0
+
   return (
     <>
       <header className="flex h-14 items-center justify-between border-b bg-background px-4">
-      {/* Left Section - File Operations */}
-      <div className="flex items-center gap-2">
-        <Button variant="ghost" size="sm" onClick={handleNew}>
-          <PlusIcon className="mr-2 h-4 w-4" />
-          New
-        </Button>
-        <Button variant="ghost" size="sm" onClick={handleOpen}>
-          <FolderOpenIcon className="mr-2 h-4 w-4" />
-          Open
-        </Button>
-        <Button variant="ghost" size="sm" onClick={handleSave} disabled={!isDirty}>
-          <SaveIcon className="mr-2 h-4 w-4" />
-          Save
-        </Button>
+        {/* Left Section - File Operations */}
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="sm" onClick={handleNew}>
+            <PlusIcon className="mr-2 h-4 w-4" />
+            New
+          </Button>
+          <Button variant="ghost" size="sm" onClick={handleOpen}>
+            <FolderOpenIcon className="mr-2 h-4 w-4" />
+            Open
+          </Button>
+          <Button variant="ghost" size="sm" onClick={handleSave} disabled={!isDirty}>
+            <SaveIcon className="mr-2 h-4 w-4" />
+            Save
+          </Button>
+          <Button variant="ghost" size="sm" onClick={handleExport} disabled={isExportDisabled}>
+            <PackageIcon className="mr-2 h-4 w-4" />
+            Export
+          </Button>
 
-        {/* Separator */}
-        <div className="mx-2 h-6 w-px bg-border" />
+          {/* Separator */}
+          <div className="mx-2 h-6 w-px bg-border" />
 
-        {/* Drawing Mode Toggle */}
-        <Button
-          variant={drawingMode === 'drawing' ? 'default' : 'ghost'}
-          size="sm"
-          onClick={handleToggleDrawing}
-        >
-          <PenToolIcon className="mr-2 h-4 w-4" />
-          {drawingMode === 'drawing' ? 'Drawing...' : 'Draw Hotspot'}
-        </Button>
+          {/* Drawing Mode Toggle */}
+          <Button
+            variant={drawingMode === 'drawing' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={handleToggleDrawing}
+          >
+            <PenToolIcon className="mr-2 h-4 w-4" />
+            {drawingMode === 'drawing' ? 'Drawing...' : 'Draw Hotspot'}
+          </Button>
 
-        {/* Dirty indicator */}
-        {isDirty && (
-          <span className="ml-2 text-xs text-muted-foreground">• Unsaved changes</span>
-        )}
-      </div>
+          {/* Dirty indicator */}
+          {isDirty && <span className="ml-2 text-xs text-muted-foreground">• Unsaved changes</span>}
+        </div>
 
-      {/* Center Section - View Mode Toggle */}
-      <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as 'editor' | 'graph')}>
-        <TabsList>
-          <TabsTrigger value="editor">Editor</TabsTrigger>
-          <TabsTrigger value="graph">Graph</TabsTrigger>
-        </TabsList>
-      </Tabs>
+        {/* Center Section - View Mode Toggle */}
+        <Tabs value={viewMode} onValueChange={(value): void => setViewMode(value as 'editor' | 'graph')}>
+          <TabsList>
+            <TabsTrigger value="editor">Editor</TabsTrigger>
+            <TabsTrigger value="graph">Graph</TabsTrigger>
+          </TabsList>
+        </Tabs>
 
-      {/* Right Section - Project Info */}
-      <div className="flex items-center gap-2">
-        <span className="text-sm text-muted-foreground">
-          <FileIcon className="inline h-4 w-4" /> {projectName}{isDirty ? ' *' : ''}
-        </span>
-      </div>
-    </header>
+        {/* Right Section - Project Info */}
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">
+            <FileIcon className="inline h-4 w-4" /> {projectName}
+            {isDirty ? ' *' : ''}
+          </span>
+        </div>
+      </header>
 
       {/* Unsaved Changes Dialog */}
       <AlertDialog open={showUnsavedDialog} onOpenChange={setShowUnsavedDialog}>
@@ -280,6 +303,9 @@ export function Toolbar() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Export Dialog */}
+      <ExportDialog open={showExportDialog} onOpenChange={setShowExportDialog} />
     </>
   )
 }
