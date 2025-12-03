@@ -59,6 +59,7 @@ interface ProjectState {
   // Project lifecycle operations
   newProject: () => Promise<boolean>
   openProject: () => Promise<boolean>
+  openProjectByPath: (projectPath: string) => Promise<boolean>
   saveProject: () => Promise<boolean>
   closeProject: () => void
   reset: () => void
@@ -419,6 +420,39 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       return true
     } catch (error) {
       console.error('Error opening project:', error)
+      return false
+    }
+  },
+
+  openProjectByPath: async (projectPath: string) => {
+    try {
+      const result = await window.projectAPI.openProjectByPath(projectPath)
+
+      if (!result.success || !result.data) {
+        console.error('Failed to open project by path:', result.error)
+        return false
+      }
+
+      const { data } = result.data
+
+      // Load project data into store
+      set({
+        projectId: data.projectId,
+        projectName: data.projectName,
+        projectPath,
+        version: data.version,
+        created: data.metadata?.created || null,
+        modified: data.metadata?.modified || null,
+        settings: data.settings || DEFAULT_SETTINGS,
+        nodes: data.nodes as Node[], // Type assertion from unknown[]
+        startNodeId: data.startNodeId,
+        graphLayout: (data.graphLayout as GraphLayoutData) || null
+      })
+
+      console.log('Project opened by path:', projectPath)
+      return true
+    } catch (error) {
+      console.error('Error opening project by path:', error)
       return false
     }
   },

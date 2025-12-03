@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useProjectStore } from '@/stores/projectStore'
 import {
   Dialog,
@@ -47,16 +47,19 @@ export function ExportDialog({ open, onOpenChange }: ExportDialogProps): JSX.Ele
   const [exportedPath, setExportedPath] = useState<string>('')
   const [errorMessage, setErrorMessage] = useState<string>('')
 
-  // Reset state when dialog opens
+  // Reset state when dialog opens (handles both controlled and uncontrolled opening)
+  useEffect(() => {
+    if (open) {
+      setExportDestination('')
+      setExportState('idle')
+      setExportedPath('')
+      setErrorMessage('')
+    }
+  }, [open])
+
+  // Handle dialog open/close changes from within the dialog
   const handleOpenChange = useCallback(
     (newOpen: boolean) => {
-      if (newOpen) {
-        // Reset state when opening
-        setExportDestination('')
-        setExportState('idle')
-        setExportedPath('')
-        setErrorMessage('')
-      }
       onOpenChange(newOpen)
     },
     [onOpenChange]

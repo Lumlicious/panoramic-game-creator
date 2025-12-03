@@ -1,5 +1,5 @@
 import { ElectronAPI } from '@electron-toolkit/preload'
-import type { FileAPI, ProjectAPI, ExportAPI } from '../shared/types/ipc'
+import type { FileAPI, ProjectAPI, ExportAPI, RecentProjectsAPI } from '../shared/types/ipc'
 
 declare global {
   interface Window {
@@ -8,5 +8,6 @@ declare global {
     fileAPI: FileAPI
     projectAPI: ProjectAPI
     exportAPI: ExportAPI
+    recentProjectsAPI: RecentProjectsAPI
   }
 }

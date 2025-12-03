@@ -19,7 +19,8 @@ import {
   SaveIcon,
   PlusIcon,
   PenToolIcon,
-  PackageIcon
+  PackageIcon,
+  HomeIcon
 } from 'lucide-react'
 import { showSuccess, showError } from '@/lib/toast'
 import { ExportDialog } from '@/components/dialogs/ExportDialog'
@@ -36,12 +37,12 @@ export function Toolbar(): JSX.Element {
   const { viewMode, setViewMode, isDirty, setDirty, drawingMode, setDrawingMode } = useEditorStore()
 
   // Project store integration
-  const { projectName, projectPath, nodes, newProject, openProject, saveProject } =
+  const { projectName, projectPath, nodes, newProject, openProject, saveProject, closeProject } =
     useProjectStore()
 
   // Unsaved changes dialog state
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false)
-  const [pendingAction, setPendingAction] = useState<'new' | 'open' | null>(null)
+  const [pendingAction, setPendingAction] = useState<'new' | 'open' | 'home' | null>(null)
 
   // Export dialog state
   const [showExportDialog, setShowExportDialog] = useState(false)
@@ -91,6 +92,19 @@ export function Toolbar(): JSX.Element {
     }
   }, [isDirty, openProject, setDirty])
 
+  const handleHome = useCallback(() => {
+    // Check for unsaved changes
+    if (isDirty) {
+      setPendingAction('home')
+      setShowUnsavedDialog(true)
+      return
+    }
+
+    // Proceed with closing project
+    closeProject()
+    setDirty(false)
+  }, [isDirty, closeProject, setDirty])
+
   const handleSave = useCallback(async () => {
     try {
       const success = await saveProject()
@@ -131,12 +145,15 @@ export function Toolbar(): JSX.Element {
       } catch (error) {
         showError('Open Failed', error instanceof Error ? error.message : 'Unknown error')
       }
+    } else if (pendingAction === 'home') {
+      closeProject()
+      setDirty(false)
     }
 
     // Reset dialog state
     setShowUnsavedDialog(false)
     setPendingAction(null)
-  }, [pendingAction, newProject, openProject, setDirty])
+  }, [pendingAction, newProject, openProject, closeProject, setDirty])
 
   // Handle "Save" in unsaved changes dialog
   const handleSaveAndContinue = useCallback(async () => {
@@ -230,6 +247,13 @@ export function Toolbar(): JSX.Element {
       <header className="flex h-14 items-center justify-between border-b bg-background px-4">
         {/* Left Section - File Operations */}
         <div className="flex items-center gap-2">
+          <Button variant="ghost" size="sm" onClick={handleHome} title="Return to welcome screen">
+            <HomeIcon className="h-4 w-4" />
+          </Button>
+
+          {/* Separator */}
+          <div className="mx-2 h-6 w-px bg-border" />
+
           <Button variant="ghost" size="sm" onClick={handleNew}>
             <PlusIcon className="mr-2 h-4 w-4" />
             New

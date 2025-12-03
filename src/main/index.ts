@@ -6,6 +6,7 @@ import icon from '../../resources/icon.png?asset'
 import { registerFileHandlers } from './ipc/fileHandlers'
 import { registerProjectHandlers } from './ipc/projectHandlers'
 import { registerExportHandlers } from './ipc/exportHandlers'
+import { registerRecentProjectsHandlers } from './ipc/recentProjectsHandlers'
 
 function createWindow(): void {
   // Create the browser window.
@@ -86,6 +87,7 @@ app.whenReady().then(() => {
   registerFileHandlers()
   registerProjectHandlers()
   registerExportHandlers()
+  registerRecentProjectsHandlers()
 
   createWindow()
 

@@ -10,6 +10,7 @@
 import { ipcMain, dialog } from 'electron'
 import { mkdir, writeFile, readFile, stat } from 'fs/promises'
 import { join, basename } from 'path'
+import { addToRecentProjects } from './recentProjectsHandlers'
 
 /**
  * Standard IPC response format
@@ -54,8 +55,11 @@ export function registerProjectHandlers(): void {
   // Save project
   ipcMain.handle('project:save', handleSaveProject)
 
-  // Open existing project
+  // Open existing project (with file picker)
   ipcMain.handle('project:open', handleOpenProject)
+
+  // Open project by path (no file picker - for recent projects)
+  ipcMain.handle('project:openByPath', handleOpenProjectByPath)
 }
 
 /**
@@ -122,6 +126,9 @@ async function handleNewProject(): Promise<IPCResponse<NewProjectResult>> {
       JSON.stringify(initialProject, null, 2),
       'utf-8'
     )
+
+    // Add to recent projects
+    await addToRecentProjects(projectPath, projectName)
 
     return {
       success: true,
@@ -246,6 +253,87 @@ async function handleOpenProject(): Promise<
         error: 'Corrupted project file (missing required fields)'
       }
     }
+
+    // Add to recent projects
+    await addToRecentProjects(projectPath, projectData.projectName)
+
+    return {
+      success: true,
+      data: {
+        projectPath,
+        data: projectData
+      }
+    }
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to open project'
+    }
+  }
+}
+
+/**
+ * Open project by path (no file picker - for recent projects)
+ *
+ * @param projectPath - Absolute path to .pgc directory
+ */
+async function handleOpenProjectByPath(
+  _event: Electron.IpcMainInvokeEvent,
+  projectPath: string
+): Promise<IPCResponse<{ projectPath: string; data: ProjectData }>> {
+  try {
+    // Validate it's a .pgc directory
+    if (!projectPath.endsWith('.pgc')) {
+      return {
+        success: false,
+        error: 'Selected path is not a .pgc project'
+      }
+    }
+
+    // Check if directory exists
+    try {
+      await stat(projectPath)
+    } catch {
+      return {
+        success: false,
+        error: 'Project directory not found'
+      }
+    }
+
+    // Read project.json
+    const projectJsonPath = join(projectPath, 'project.json')
+    let projectJsonContent: string
+
+    try {
+      projectJsonContent = await readFile(projectJsonPath, 'utf-8')
+    } catch {
+      return {
+        success: false,
+        error: 'project.json not found in project directory'
+      }
+    }
+
+    // Parse and validate
+    let projectData: ProjectData
+    try {
+      projectData = JSON.parse(projectJsonContent) as ProjectData
+    } catch {
+      return {
+        success: false,
+        error: 'Invalid project.json file'
+      }
+    }
+
+    // Basic validation
+    if (!projectData.projectId || !projectData.projectName || !projectData.nodes) {
+      return {
+        success: false,
+        error: 'Corrupted project file (missing required fields)'
+      }
+    }
+
+    // Add to recent projects
+    await addToRecentProjects(projectPath, projectData.projectName)
 
     return {
       success: true,

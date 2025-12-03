@@ -100,10 +100,20 @@ Panoramic Game Creator is a desktop Electron application for creating panoramic 
   - **Files Created**: exportHandlers.ts, gameDataTransformer.ts, ExportDialog.tsx
   - **Result**: Complete export infrastructure working end-to-end
 
+- ✅ **Recent Projects & Welcome Screen** (2025-12-03)
+  - **Recent Projects API**: Track last 10 opened projects with electron-store
+  - **Welcome Screen**: Full-screen landing with New/Open actions + recent projects list
+  - **Home Button**: Toolbar button to return to welcome screen (with unsaved changes handling)
+  - **Simple List UI**: Scrollable text list showing project name + last opened date
+  - **Auto-cleanup**: Invalid project paths automatically removed from list
+  - **Files Created**: recentProjectsHandlers.ts, WelcomeScreen.tsx (enhanced)
+  - **Result**: Users can quickly access recent projects from welcome screen
+
 **Strategic Rationale:**
 Phases 7 & 8 have been **reordered** to prioritize completing the vertical slice (create → edit → save → **PLAY**) before investing in editor robustness features. Basic save/load already works, so we can now validate the core gameplay experience.
 
 **Goals:**
+
 - Build standalone game player component (read-only panorama viewer)
 - Implement hotspot click → node navigation
 - Create export functionality (standalone HTML with embedded assets)
@@ -111,6 +121,7 @@ Phases 7 & 8 have been **reordered** to prioritize completing the vertical slice
 - Validate data model works for actual gameplay
 
 **Why This Order:**
+
 1. Complete vertical slice required to validate product works end-to-end
 2. Prove data model supports gameplay before polishing editor
 3. Basic project persistence already complete (New/Open/Save working)
@@ -139,6 +150,7 @@ These documents contain ALL architectural decisions, implementation details, and
 ### Installed Dependencies
 
 All dependencies from plan.md have been installed:
+
 - ✅ React 18 + TypeScript
 - ✅ Three.js + @react-three/fiber + @react-three/drei
 - ✅ reactflow (React Flow for node graph)
@@ -336,6 +348,7 @@ This is the most complex phase. Key components:
 6. **Keyboard shortcuts**: Must implement Delete, Escape, Enter
 
 **See TECHNICAL_SPEC.md sections**:
+
 - "Polygon Rendering on Sphere"
 - "Vertex Dragging Implementation"
 - "Hotspot Interaction System"
@@ -520,10 +533,11 @@ If implementation differs from spec, update the spec to reflect reality.
 
 ---
 
-**Status**: Phase 7 Step 5 ✅ Complete | Testing Vertical Slice (Phase 7) 🎯
+**Status**: Phase 7 Step 5 ✅ Complete | Recent Projects ✅ Complete | Testing Vertical Slice (Phase 7) 🎯
 **Last Updated**: 2025-12-03
-**Current Progress**: Phase 7 Step 5 complete - Full export infrastructure working
+**Current Progress**: Export infrastructure + Recent projects feature complete
 **What's Working**:
+
 - ✅ Standalone /player Vite project (React + Three.js + Zustand)
 - ✅ GameEngine with navigation and state management
 - ✅ PanoramaSphere with texture loading and disposal
@@ -534,5 +548,8 @@ If implementation differs from spec, update the spec to reflect reality.
 - ✅ Export Dialog with progress/success/error states
 - ✅ Vite build integration (direct Node.js execution)
 - ✅ Asset copying (panoramas + player bundle)
-**Next Step**: Phase 7 Step 6 - Test Complete Vertical Slice (create → edit → save → export → PLAY)
-**Architecture**: React + R3F + Vite, Web folder export, CDN-friendly (see PHASE7_ARCHITECTURE.md)
+- ✅ Recent Projects tracking (electron-store, last 10 projects)
+- ✅ Welcome Screen with recent projects list
+- ✅ Home button in toolbar to return to welcome screen
+  **Next Step**: Phase 7 Step 6 - Test Complete Vertical Slice (create → edit → save → export → PLAY)
+  **Architecture**: React + R3F + Vite, Web folder export, CDN-friendly (see PHASE7_ARCHITECTURE.md)

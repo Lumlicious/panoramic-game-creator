@@ -9,6 +9,7 @@ A desktop application that allows users to create panoramic point-and-click adve
 ## Tech Stack
 
 ### Core Technologies
+
 - **electron-vite** - Official Electron + Vite integration for optimal development experience
 - **React** - UI framework
 - **TypeScript** - Type-safe development
@@ -16,6 +17,7 @@ A desktop application that allows users to create panoramic point-and-click adve
 - **shadcn/ui** - Pre-built accessible components (using official template)
 
 ### Key Libraries
+
 - **Three.js + React Three Fiber + Drei** - 3D panoramic rendering and hotspot drawing (equirectangular & cubic)
 - **React Flow** - Node graph visualization
 - **Zustand** - Lightweight state management
@@ -24,6 +26,7 @@ A desktop application that allows users to create panoramic point-and-click adve
 ## Starting Point
 
 Use the official **shadcn/shadcn-electron-app** template which includes:
+
 - electron-vite pre-configured
 - React + TypeScript setup
 - Tailwind CSS integrated
@@ -82,76 +85,79 @@ panoramic-game-creator/
 ## Data Models
 
 ### Project
+
 ```typescript
 interface Project {
-  id: string;
-  name: string;
-  version: string;
-  created: string;
-  modified: string;
-  startNodeId: string | null;
-  nodes: Node[];
-  settings: ProjectSettings;
+  id: string
+  name: string
+  version: string
+  created: string
+  modified: string
+  startNodeId: string | null
+  nodes: Node[]
+  settings: ProjectSettings
 }
 
 interface ProjectSettings {
-  defaultFOV: number;
-  hotspotDefaultColor: string;
-  hotspotHoverColor: string;
+  defaultFOV: number
+  hotspotDefaultColor: string
+  hotspotHoverColor: string
 }
 ```
 
 ### Node
+
 ```typescript
 interface Node {
-  id: string;
-  name: string;
-  panorama: PanoramaData;
-  hotspots: Hotspot[];
-  position: { x: number; y: number };  // For graph layout
+  id: string
+  name: string
+  panorama: PanoramaData
+  hotspots: Hotspot[]
+  position: { x: number; y: number } // For graph layout
   metadata?: {
-    description?: string;
-    tags?: string[];
-  };
+    description?: string
+    tags?: string[]
+  }
 }
 
 interface PanoramaData {
-  type: 'equirectangular' | 'cubic';
+  type: 'equirectangular' | 'cubic'
   // For equirectangular
-  filePath?: string;
+  filePath?: string
   // For cubic (future)
   faces?: {
-    front: string;
-    back: string;
-    left: string;
-    right: string;
-    top: string;
-    bottom: string;
-  };
+    front: string
+    back: string
+    left: string
+    right: string
+    top: string
+    bottom: string
+  }
 }
 ```
 
 ### Hotspot
+
 ```typescript
 interface Hotspot {
-  id: string;
-  name: string;
-  targetNodeId: string;
-  polygon: SphericalPoint[];  // Stored in spherical coordinates
-  style: HotspotStyle;
+  id: string
+  name: string
+  targetNodeId: string
+  polygon: SphericalPoint[] // Stored in spherical coordinates
+  style: HotspotStyle
 }
 
 interface SphericalPoint {
-  theta: number;  // Azimuthal angle (horizontal rotation)
-  phi: number;    // Polar angle (vertical angle)
+  theta: number // Azimuthal angle (horizontal rotation)
+  phi: number // Polar angle (vertical angle)
 }
 
 interface HotspotStyle {
-  fillColor: string;
-  strokeColor: string;
-  strokeWidth: number;
-  opacity: number;
-  hoverFillColor?: string;
+  fillColor: string
+  strokeColor: string
+  strokeWidth: number
+  opacity: number
+  hoverFillColor?: string
 }
 ```
 
@@ -177,6 +183,7 @@ MyAdventure.pgc/
 ```
 
 **Why this approach**:
+
 - ✅ Easy to debug (files visible)
 - ✅ No compression overhead
 - ✅ Cross-platform compatible
@@ -216,6 +223,7 @@ See [TECHNICAL_SPEC.md](./TECHNICAL_SPEC.md#project-file-format) for implementat
 ## Implementation Phases
 
 ### Phase 1: Project Setup ✓
+
 **Goal**: Get the development environment ready
 
 1. Clone official shadcn-electron-app template
@@ -228,6 +236,7 @@ See [TECHNICAL_SPEC.md](./TECHNICAL_SPEC.md#project-file-format) for implementat
 4. Set up project structure (folders for stores, types, lib)
 
 ### Phase 2: Basic App Layout ✓
+
 **Goal**: Create the application shell
 
 1. Build main layout with:
@@ -240,6 +249,7 @@ See [TECHNICAL_SPEC.md](./TECHNICAL_SPEC.md#project-file-format) for implementat
 4. Implement basic styling with Tailwind
 
 ### Phase 3: Panorama Viewer (Core Feature) ✓
+
 **Goal**: Display 360° panoramic images (both equirectangular and cubic)
 
 1. Create Three.js scene with React Three Fiber:
@@ -261,15 +271,17 @@ See [TECHNICAL_SPEC.md](./TECHNICAL_SPEC.md#project-file-format) for implementat
 6. **Early Implementation**: Basic node management (projectStore) and test loader UI
 
 **Camera Configuration**:
+
 ```typescript
-controls.enablePan = false;
-controls.enableRotate = true;
-controls.enableDamping = true;
-controls.minPolarAngle = 0;
-controls.maxPolarAngle = Math.PI;
+controls.enablePan = false
+controls.enableRotate = true
+controls.enableDamping = true
+controls.minPolarAngle = 0
+controls.maxPolarAngle = Math.PI
 ```
 
 **Technical Notes**:
+
 - Use `THREE.SphereGeometry` with negative scale to invert for equirectangular
 - Use `THREE.BoxGeometry` with BackSide material for cubic
 - Camera stays at (0,0,0) looking outward
@@ -278,9 +290,11 @@ controls.maxPolarAngle = Math.PI;
 - See [TECHNICAL_SPEC.md](./TECHNICAL_SPEC.md#camera-configuration) for details
 
 ### Phase 4: Hotspot Drawing System (Pure Three.js)
+
 **Goal**: Draw polygonal hotspots directly on the panoramic geometry (sphere or box)
 
 **Note**: With cubic panorama support now implemented, hotspot drawing needs to handle both:
+
 - **Equirectangular**: Spherical coordinates on sphere surface
 - **Cubic**: Planar coordinates on box faces (simpler - no seam crossing issues)
 
@@ -326,6 +340,7 @@ controls.maxPolarAngle = Math.PI;
    - Enter: Finish current polygon
 
 **Technical Notes**:
+
 - All geometry exists in 3D space - no coordinate syncing needed
 - Hotspots naturally follow sphere curvature
 - Use raycasting for all user interactions (prioritize vertices → hotspots → sphere)
@@ -336,6 +351,7 @@ controls.maxPolarAngle = Math.PI;
 - Vertex dragging implementation in [TECHNICAL_SPEC.md](./TECHNICAL_SPEC.md#vertex-dragging-implementation)
 
 ### Phase 5: Node Management (In Progress)
+
 **Goal**: Create and manage panoramic nodes (both equirectangular and cubic)
 
 **Note**: Basic node management (projectStore) already implemented in Phase 3 for testing. This phase focuses on proper UI, IPC, and validation.
@@ -396,16 +412,18 @@ controls.maxPolarAngle = Math.PI;
    - TODO: Show validation errors with toast notifications
 
 **Validation Example**:
+
 ```typescript
 // Reject if not equirectangular
 if (aspectRatio < 1.9 || aspectRatio > 2.1) {
-  showError('Invalid aspect ratio', 'Expected ~2:1 for equirectangular');
+  showError('Invalid aspect ratio', 'Expected ~2:1 for equirectangular')
 }
 ```
 
 See [TECHNICAL_SPEC.md](./TECHNICAL_SPEC.md#image-specifications) for complete validation rules.
 
 ### Phase 6: Node Graph Visualization
+
 **Goal**: Visual overview of all nodes and connections
 
 1. Integrate React Flow:
@@ -422,6 +440,7 @@ See [TECHNICAL_SPEC.md](./TECHNICAL_SPEC.md#image-specifications) for complete v
    - Current selected node highlight
 
 ### Phase 7: Game Player & Export ⭐ PRIORITY
+
 **Goal**: Export playable games - complete the vertical slice
 
 **Status**: Next phase to implement (after Phases 1-6 complete)
@@ -466,6 +485,7 @@ See [TECHNICAL_SPEC.md](./TECHNICAL_SPEC.md#image-specifications) for complete v
    - Test in multiple browsers (Chrome, Firefox, Safari)
 
 **Success Criteria**:
+
 - User can click "Export Game" button
 - Exported HTML file opens in browser
 - Panoramas load and display correctly
@@ -475,6 +495,7 @@ See [TECHNICAL_SPEC.md](./TECHNICAL_SPEC.md#image-specifications) for complete v
 See detailed implementation checklist below.
 
 ### Phase 8: Editor Robustness (DEFERRED)
+
 **Goal**: Polish editor with advanced features
 
 **Status**: Defer until Phase 7 (Game Player) is complete and validated
@@ -520,6 +541,7 @@ See detailed implementation checklist below.
    - Conflict resolution if manual save occurs
 
 **File Format** (project.json):
+
 ```json
 {
   "id": "uuid",
@@ -554,6 +576,7 @@ These are important but not required for MVP:
 See [TECHNICAL_SPEC.md](./TECHNICAL_SPEC.md) for complete specifications.
 
 ### Core Constants
+
 ```typescript
 // Sphere configuration
 SPHERE_RADIUS = 500
@@ -583,79 +606,85 @@ MAX_FILE_SIZE = 50MB
 
 Essential shortcuts needed for basic functionality:
 
-| Action | Shortcut | Phase |
-|--------|----------|-------|
-| New Project | Ctrl/Cmd+N | 7 |
-| Open Project | Ctrl/Cmd+O | 7 |
-| Save | Ctrl/Cmd+S | 7 |
-| Save As | Ctrl/Cmd+Shift+S | 7 |
+| Action             | Shortcut             | Phase    |
+| ------------------ | -------------------- | -------- |
+| New Project        | Ctrl/Cmd+N           | 7        |
+| Open Project       | Ctrl/Cmd+O           | 7        |
+| Save               | Ctrl/Cmd+S           | 7        |
+| Save As            | Ctrl/Cmd+Shift+S     | 7        |
 | **Delete Hotspot** | **Delete/Backspace** | **4** ⚠️ |
-| **Cancel Drawing** | **Escape** | **4** ⚠️ |
-| **Finish Polygon** | **Enter** | **4** ⚠️ |
-| Toggle View | Tab | 2 |
+| **Cancel Drawing** | **Escape**           | **4** ⚠️ |
+| **Finish Polygon** | **Enter**            | **4** ⚠️ |
+| Toggle View        | Tab                  | 2        |
 
 ⚠️ **Critical for Phase 4**: Delete, Escape, and Enter are required for hotspot editing workflow.
 
 ## Key Technical Considerations
 
 ### 1. Coordinate System (Critical)
+
 Hotspots must be stored in **spherical coordinates** to be resolution-independent:
 
 ```typescript
 // Screen to Spherical conversion
 function screenToSpherical(screenX: number, screenY: number, camera: Camera): SphericalPoint {
   // Use raycasting to find intersection with sphere
-  const raycaster = new THREE.Raycaster();
-  raycaster.setFromCamera(normalizedScreenCoords, camera);
-  const intersects = raycaster.intersectObject(sphereMesh);
+  const raycaster = new THREE.Raycaster()
+  raycaster.setFromCamera(normalizedScreenCoords, camera)
+  const intersects = raycaster.intersectObject(sphereMesh)
 
   if (intersects.length > 0) {
-    const point = intersects[0].point;
-    const theta = Math.atan2(point.z, point.x);
-    const phi = Math.acos(point.y / radius);
-    return { theta, phi };
+    const point = intersects[0].point
+    const theta = Math.atan2(point.z, point.x)
+    const phi = Math.acos(point.y / radius)
+    return { theta, phi }
   }
 }
 
 // Spherical to Screen conversion
-function sphericalToScreen(theta: number, phi: number, camera: Camera): {x: number, y: number} {
+function sphericalToScreen(theta: number, phi: number, camera: Camera): { x: number; y: number } {
   const point = new THREE.Vector3(
     radius * Math.sin(phi) * Math.cos(theta),
     radius * Math.cos(phi),
     radius * Math.sin(phi) * Math.sin(theta)
-  );
-  point.project(camera);
+  )
+  point.project(camera)
 
   return {
-    x: (point.x + 1) * width / 2,
-    y: (-point.y + 1) * height / 2
-  };
+    x: ((point.x + 1) * width) / 2,
+    y: ((-point.y + 1) * height) / 2
+  }
 }
 ```
 
 ### 2. Hotspot Rendering in 3D
+
 Hotspots are rendered as 3D geometry on the sphere surface:
 
 - Convert spherical coordinates to 3D cartesian coordinates
-- Create mesh geometry slightly inside sphere radius (e.g., radius * 0.99)
+- Create mesh geometry slightly inside sphere radius (e.g., radius \* 0.99)
 - Use semi-transparent materials for fill and stroke
 - Raycasting handles all interaction (hover, click, drag)
 - No coordinate syncing required - everything in one 3D scene
 
 ### 3. State Management (Zustand)
+
 Two main stores:
 
 **projectStore**:
+
 - Current project data
 - Nodes, hotspots, settings
 - Persisted to file
 
 **editorStore**:
+
 - UI state (selected node, drawing mode, etc.)
 - Current view (editor vs graph)
 - Not persisted
 
 ### 4. Performance Optimization
+
 - Load panoramas on-demand (not all at once)
 - Reduce texture size if needed (max 4K)
 - Throttle hotspot redrawing
@@ -663,6 +692,7 @@ Two main stores:
 - Lazy load node thumbnails
 
 ### 5. Electron IPC Security
+
 Use contextBridge in preload script:
 
 ```typescript
@@ -676,7 +706,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   file: {
     pickImage: () => ipcRenderer.invoke('file:pickImage')
   }
-});
+})
 ```
 
 ## Dependencies to Install
@@ -711,6 +741,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 ```
 
 **New Dependencies Explained**:
+
 - **earcut** - Polygon triangulation for rendering hotspots on sphere
 - **file-type** - Validate image formats
 - **sharp** - High-performance thumbnail generation (main process)
@@ -732,11 +763,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
 **Goal**: Build game player and export functionality to complete the vertical slice (create → edit → save → **PLAY**)
 
 ### Step 1: Verify Current Safety Features ✅ COMPLETE
+
 **Objective**: Confirm basic save/load works before building player
 
 **Status**: Completed 2025-11-16
 
 **Tasks:**
+
 - [x] Code review of IPC handlers (projectHandlers.ts)
 - [x] Code review of store actions (projectStore.ts)
 - [x] Code review of keyboard shortcuts (Toolbar.tsx)
@@ -745,17 +778,20 @@ contextBridge.exposeInMainWorld('electronAPI', {
 - [x] Verified compilation - all changes HMR updated successfully
 
 **Files Reviewed:**
+
 - `src/main/ipc/projectHandlers.ts` - IPC handlers ✅
 - `src/renderer/src/stores/projectStore.ts` - save/load actions ✅
 - `src/renderer/src/stores/editorStore.ts` - isDirty flag ✅
 - `src/renderer/src/components/layout/Toolbar.tsx` - keyboard shortcuts ✅
 
 **Files Modified (isDirty Fix):**
+
 - `src/renderer/src/components/layout/PropertiesPanel.tsx` - Added 5 setDirty(true) calls
 - `src/renderer/src/components/panorama/PanoramaSphere.tsx` - Added 2 setDirty(true) calls
 - `src/renderer/src/components/graph/GraphView.tsx` - Added 1 setDirty(true) call
 
 **What Works:**
+
 - ✅ New Project creates .pgc directory with assets/panoramas, assets/thumbnails, .pgc-meta
 - ✅ Save Project writes project.json with timestamps
 - ✅ Open Project loads and validates existing .pgc directories
@@ -765,11 +801,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
 **Critical Fix Applied:**
 The isDirty flag was only set when creating new nodes. Fixed by adding setDirty(true) to:
+
 - Node name updates, start node toggle, node deletion
 - Hotspot creation, name/target updates, deletion, vertex dragging
 - Graph node position updates (drag)
 
 **Acceptance Criteria:**
+
 - [x] Can create new project
 - [x] Can save project (Cmd/Ctrl+S)
 - [x] Can open existing project
@@ -778,11 +816,13 @@ The isDirty flag was only set when creating new nodes. Fixed by adding setDirty(
 ---
 
 ### Step 2: Plan Player Architecture ✅ COMPLETE
+
 **Objective**: Design player component structure and export format
 
 **Status**: Completed 2025-11-18 (REDESIGNED for web hosting)
 
 **Tasks:**
+
 - [x] Review existing PanoramaViewer code to identify reusable parts
 - [x] Design read-only panorama viewer (no editing)
 - [x] Plan hotspot click → navigation flow
@@ -792,6 +832,7 @@ The isDirty flag was only set when creating new nodes. Fixed by adding setDirty(
 - [x] Design extensibility for future features (inventory, dialogs, puzzles)
 
 **Critical Decisions Made:**
+
 - ✅ **Export format**: Web folder (static site) for Vercel/Netlify/VPS hosting
 - ✅ **Player framework**: **React + TypeScript + React Three Fiber** (extensible game engine)
 - ✅ **Asset strategy**: **Separate files** (CDN-friendly, progressive loading, browser cache)
@@ -801,6 +842,7 @@ The isDirty flag was only set when creating new nodes. Fixed by adding setDirty(
 - ✅ **CDN support**: Optional CDN URLs for panoramas (manual upload for MVP)
 
 **Architecture Highlights:**
+
 - React-based game engine (NOT Vanilla JS)
 - Plugin architecture for inventory, dialogs, puzzles
 - Texture caching and preloading system
@@ -809,6 +851,7 @@ The isDirty flag was only set when creating new nodes. Fixed by adding setDirty(
 
 **Files Planned:**
 Player source (`/player/src/`):
+
 - `components/GameEngine.tsx` - Top-level coordinator
 - `components/PanoramaView.tsx` - Canvas container
 - `components/three/PanoramaSphere.tsx` - React Three Fiber sphere
@@ -818,14 +861,17 @@ Player source (`/player/src/`):
 - `lib/assetResolver.ts` - CDN/local URL resolution
 
 Export infrastructure:
+
 - `electron/main/exportHandlers.ts` - IPC export handler
 - `electron/main/transformers/gameDataTransformer.ts` - Project → game.json
 - Export output: `my-game/dist/` (upload to web host)
 
 **Documentation:**
+
 - Complete architecture document: `PHASE7_ARCHITECTURE.md` (web-hosted game engine)
 
 **Acceptance Criteria:**
+
 - [x] Clear architecture documented (React-based, web-first)
 - [x] File structure planned (separate `/player` project)
 - [x] Export format decided (web folder, not single HTML)
@@ -837,11 +883,13 @@ Export infrastructure:
 ---
 
 ### Step 3: Create GamePlayer Component ✅ COMPLETE
+
 **Objective**: Build basic panorama viewer for player (read-only mode)
 
 **Status**: Completed 2025-11-28
 
 **Tasks:**
+
 - [x] Create complete `/player` directory (standalone Vite project)
 - [x] Build GameEngine component (top-level coordinator)
 - [x] Build PanoramaView component (Three.js canvas container)
@@ -859,6 +907,7 @@ Export infrastructure:
 **What Was Built:**
 
 **Core Components (588 lines):**
+
 - `player/src/components/GameEngine.tsx` - Navigation coordinator
 - `player/src/components/PanoramaView.tsx` - Canvas container with loading states
 - `player/src/components/three/PanoramaSphere.tsx` - 360° panorama with texture management
@@ -866,15 +915,18 @@ Export infrastructure:
 - `player/src/components/three/HotspotMesh.tsx` - Individual clickable hotspots
 
 **State & Types:**
+
 - `player/src/stores/gameStore.ts` - Zustand state (navigation, history, inventory)
 - `player/src/types/game.ts` - Complete TypeScript type definitions
 
 **Utilities:**
+
 - `player/src/lib/coordinates.ts` - Spherical ↔ Cartesian conversion
 - `player/src/lib/config.ts` - Constants (sphere radius, camera, etc.)
 - `player/src/lib/triangulation.ts` - Earcut polygon triangulation
 
 **Documentation (5 files):**
+
 - `player/README.md` - Full setup and architecture guide
 - `player/QUICKSTART.md` - 3-minute getting started
 - `player/SUPPORTED_FORMATS.md` - Image format specifications
@@ -882,11 +934,13 @@ Export infrastructure:
 - `player/INTEGRATION.md` - Export integration guide
 
 **Configuration:**
+
 - `player/package.json` - React + Three.js + Zustand + Vite
 - `player/vite.config.ts` - Dev server and build configuration
 - `player/tsconfig.json` - TypeScript configuration
 
 **Key Features Implemented:**
+
 - ✅ Click hotspots to navigate between nodes
 - ✅ Smooth camera controls (drag to rotate)
 - ✅ Proper texture disposal (no memory leaks)
@@ -896,6 +950,7 @@ Export infrastructure:
 - ✅ Conditional rendering (only show sphere after texture loads)
 
 **Tech Stack:**
+
 - React 18 + TypeScript
 - Three.js + React Three Fiber + Drei
 - Zustand (state management)
@@ -903,15 +958,18 @@ Export infrastructure:
 - Earcut (polygon triangulation)
 
 **Critical Bug Fixed:**
+
 - Texture loading but not displaying → Fixed by conditional mesh rendering
 - Only render mesh after texture loads (match editor's approach)
 
 **Build Status:**
+
 - ✅ TypeScript: No errors
 - ✅ Production build: 1.75s
 - ✅ Bundle sizes optimized (code splitting)
 
 **Acceptance Criteria:**
+
 - [x] GamePlayer component renders panorama ✅
 - [x] Camera controls work (orbit, zoom) ✅
 - [x] Can switch between nodes programmatically ✅
@@ -923,11 +981,13 @@ Export infrastructure:
 ---
 
 ### Step 4: Implement Hotspot Interaction ✅ MERGED INTO STEP 3
+
 **Objective**: Click hotspot → navigate to target node
 
 **Status**: Completed 2025-11-28 (implemented as part of Step 3)
 
 All hotspot interaction features were implemented in Step 3:
+
 - ✅ HotspotLayer + HotspotMesh components with full interaction
 - ✅ Raycasting for click detection
 - ✅ Hover effects (opacity changes, cursor pointer)
@@ -938,11 +998,13 @@ All hotspot interaction features were implemented in Step 3:
 ---
 
 ### Step 5: Build Export Infrastructure ✅ COMPLETE
+
 **Objective**: Connect editor to player with export functionality
 
 **Status**: Completed 2025-12-03
 
 **Tasks:**
+
 - [x] Create IPC handler `project:export` in main process
 - [x] Build Project → GameData transformer
 - [x] Copy panorama assets to export directory
@@ -953,6 +1015,7 @@ All hotspot interaction features were implemented in Step 3:
 - [x] Test exported game in browser
 
 **Export Flow:**
+
 1. User clicks "Export Game" in editor toolbar
 2. Dialog asks for export destination folder
 3. Editor sends project data to main process via IPC
@@ -965,16 +1028,19 @@ All hotspot interaction features were implemented in Step 3:
 5. Shows success notification with path to exported game
 
 **Files Created:**
+
 - `src/main/ipc/exportHandlers.ts` - IPC export handler ✅
 - `src/main/transformers/gameDataTransformer.ts` - Project → GameData ✅
 - `src/renderer/src/components/dialogs/ExportDialog.tsx` - Export UI ✅
 
 **Files Modified:**
+
 - `src/main/index.ts` - Register export handlers ✅
 - `src/preload/index.ts` - Add export API ✅
 - `src/renderer/src/components/layout/Toolbar.tsx` - Add Export button ✅
 
 **Export Output Structure:**
+
 ```
 my-adventure/
 ├── dist/              # Built player (UPLOAD THIS)
@@ -989,6 +1055,7 @@ my-adventure/
 ```
 
 **Acceptance Criteria:**
+
 - [x] Export button in toolbar
 - [x] Export dialog works
 - [x] Game.json generated correctly
@@ -998,6 +1065,7 @@ my-adventure/
 - [x] User can open index.html and play
 
 **Key Implementation Details:**
+
 - Fixed npm spawn ENOENT issue by running Node.js/Vite directly (no shell)
 - Export dialog shows progress spinner during build
 - Success state shows export path with copy-to-clipboard button
@@ -1006,9 +1074,11 @@ my-adventure/
 ---
 
 ### Step 6: Test Complete Vertical Slice (NEXT)
+
 **Objective**: UI for exporting game with user options
 
 **Tasks:**
+
 - [ ] Create export dialog component
 - [ ] Add export format selector:
   - **Single HTML** (recommended for small projects)
@@ -1020,6 +1090,7 @@ my-adventure/
 - [ ] Show success/error notifications
 
 **UI Flow:**
+
 1. User clicks "Export Game" in toolbar
 2. Dialog shows export options
 3. User selects format and destination
@@ -1028,11 +1099,13 @@ my-adventure/
 6. Success toast on completion
 
 **Files to Create/Modify:**
+
 - **NEW:** `src/renderer/src/components/dialogs/ExportDialog.tsx`
 - Modify `src/renderer/src/components/layout/Toolbar.tsx` - Add Export button
 - Modify `src/renderer/src/stores/projectStore.ts` - Add exportProject() action
 
 **Acceptance Criteria:**
+
 - [ ] Export button in toolbar
 - [ ] Dialog shows export options
 - [ ] File picker works
@@ -1042,9 +1115,11 @@ my-adventure/
 ---
 
 ### Step 7: Generate Standalone HTML Export
+
 **Objective**: Create self-contained HTML file with embedded game
 
 **Tasks:**
+
 - [ ] Create IPC handler `project:export` in main process
 - [ ] Implement `generateStandaloneHTML()` function
 - [ ] Embed project JSON inline (as JavaScript object)
@@ -1056,33 +1131,37 @@ my-adventure/
 - [ ] Test in browser (open file:// directly)
 
 **Export Format (Single HTML):**
+
 ```html
 <!DOCTYPE html>
 <html>
-<head>
-  <title>Game Title</title>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.min.js"></script>
-</head>
-<body>
-  <div id="game-container"></div>
-  <script>
-    // Embedded project data
-    const PROJECT_DATA = { /* project.json */ };
+  <head>
+    <title>Game Title</title>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.min.js"></script>
+  </head>
+  <body>
+    <div id="game-container"></div>
+    <script>
+      // Embedded project data
+      const PROJECT_DATA = {
+        /* project.json */
+      }
 
-    // Embedded panoramas (base64)
-    const PANORAMAS = {
-      'node-123': 'data:image/jpeg;base64,...',
-      // ...
-    };
+      // Embedded panoramas (base64)
+      const PANORAMAS = {
+        'node-123': 'data:image/jpeg;base64,...'
+        // ...
+      }
 
-    // Player code
-    // ... (GamePlayer logic in vanilla JS)
-  </script>
-</body>
+      // Player code
+      // ... (GamePlayer logic in vanilla JS)
+    </script>
+  </body>
 </html>
 ```
 
 **Files to Create/Modify:**
+
 - **NEW:** `src/main/ipc/exportHandlers.ts` - IPC handler
 - **NEW:** `src/lib/export/generateHTML.ts` - HTML generation logic
 - **NEW:** `templates/player-template.html` - HTML template
@@ -1090,11 +1169,13 @@ my-adventure/
 - Modify `src/preload/index.ts` - Add export API
 
 **Technical Challenges:**
+
 - Converting images to base64 (use sharp or fs.readFile + Buffer.toString('base64'))
 - Minifying player code for smaller file size
 - Handling large panoramas (file size limits)
 
 **Acceptance Criteria:**
+
 - [ ] Export generates HTML file
 - [ ] HTML file opens in browser without server
 - [ ] Project data embedded correctly
@@ -1105,9 +1186,11 @@ my-adventure/
 ---
 
 ### Step 8: Test Complete Vertical Slice
+
 **Objective**: Validate end-to-end workflow from create to play
 
 **Test Workflow:**
+
 1. **Create**: Create new project
 2. **Add Content**: Add 3+ nodes with panoramas
 3. **Draw Hotspots**: Draw hotspots on each node
@@ -1118,6 +1201,7 @@ my-adventure/
 8. **Play**: Open HTML in browser, test navigation
 
 **Test Cases:**
+
 - [ ] Navigation works in all directions
 - [ ] Start node loads first
 - [ ] Hotspot hover effects work
@@ -1128,11 +1212,13 @@ my-adventure/
 - [ ] Mobile browser compatibility (basic test)
 
 **Files to Test:**
+
 - All player components
 - Export functionality
 - Generated HTML output
 
 **Acceptance Criteria:**
+
 - [ ] Complete vertical slice works end-to-end
 - [ ] Can create → edit → save → export → **PLAY**
 - [ ] Exported game works in browsers
@@ -1142,11 +1228,12 @@ my-adventure/
 ---
 
 ### Step 9-15: Return to Phase 8 (Editor Robustness)
+
 **After Phase 7 is complete and validated**, implement Phase 8 features:
 
 9. [ ] **Save As** - Copy project to new location
 10. [ ] **Project Validation** - Check missing images, version compatibility
-11. [ ] **Recent Projects List** - Track and display recent projects
+11. [x] **Recent Projects List** - Track and display recent projects ✅ (2025-12-03)
 12. [ ] **Window Close Prevention** - Prompt before closing with unsaved changes
 13. [ ] **Enhanced Error Handling** - Better file system error messages
 14. [ ] **Auto-save** (optional) - Periodic background saves
@@ -1157,6 +1244,7 @@ my-adventure/
 ## Success Criteria (MVP)
 
 The MVP is complete when:
+
 - ✅ User can create a new project
 - ✅ User can add nodes with panoramic images
 - ✅ User can draw hotspot polygons on panoramas
@@ -1169,6 +1257,7 @@ The MVP is complete when:
 ## Next Steps After MVP
 
 Once core functionality works:
+
 1. Add cubic panorama support
 2. Implement undo/redo
 3. Add validation and error handling
@@ -1201,6 +1290,7 @@ Wrap the app in an Error Boundary component:
 ```
 
 On crash:
+
 - Attempt emergency save to Documents folder
 - Show error message with recovery path
 - Offer to reload application
