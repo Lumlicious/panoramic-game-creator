@@ -62,12 +62,7 @@ export function HotspotMesh({
       onPointerEnter={handlePointerEnter}
       onPointerLeave={handlePointerLeave}
     >
-      <meshBasicMaterial
-        transparent
-        opacity={0}
-        side={THREE.DoubleSide}
-        depthWrite={false}
-      />
+      <meshBasicMaterial transparent opacity={0} side={THREE.DoubleSide} depthWrite={false} />
     </mesh>
   )
 }

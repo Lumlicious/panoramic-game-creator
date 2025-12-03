@@ -130,8 +130,9 @@ export function ExportDialog({ open, onOpenChange }: ExportDialogProps): JSX.Ele
         showSuccess('Export Successful', `Game exported to ${result.data.exportPath}`)
       } else {
         setExportState('error')
-        setErrorMessage(result.error || 'Export failed for unknown reason')
-        showError('Export Failed', result.error)
+        const message = result.error || 'Export failed for unknown reason'
+        setErrorMessage(message)
+        showError('Export Failed', message)
       }
     } catch (error) {
       setExportState('error')
