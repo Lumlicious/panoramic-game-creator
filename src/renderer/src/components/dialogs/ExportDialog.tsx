@@ -15,7 +15,8 @@ import {
   CheckCircle2Icon,
   AlertCircleIcon,
   Loader2,
-  CopyIcon
+  CopyIcon,
+  PlayIcon
 } from 'lucide-react'
 import { showSuccess, showError, showWarning } from '@/lib/toast'
 
@@ -150,6 +151,19 @@ export function ExportDialog({ open, onOpenChange }: ExportDialogProps): JSX.Ele
     handleOpenChange(false)
   }, [handleOpenChange])
 
+  // Preview game in browser via local HTTP server
+  const handlePreviewInBrowser = useCallback(async () => {
+    if (!exportedPath) return
+    try {
+      const result = await window.exportAPI.previewGame(exportedPath)
+      if (!result.success) {
+        showError('Preview Failed', result.error ?? 'Could not start preview server')
+      }
+    } catch (error) {
+      showError('Preview Failed', error instanceof Error ? error.message : 'Unknown error')
+    }
+  }, [exportedPath])
+
   // Copy exported path to clipboard
   const handleCopyPath = useCallback(async () => {
     if (exportedPath) {
@@ -238,10 +252,15 @@ export function ExportDialog({ open, onOpenChange }: ExportDialogProps): JSX.Ele
                   </p>
                 </div>
               </div>
-              <Button variant="outline" size="sm" onClick={handleCopyPath} className="w-full">
-                <CopyIcon className="mr-2 h-4 w-4" />
-                Copy Path
-              </Button>
+              <div className="flex gap-2">
+                <Button onClick={handlePreviewInBrowser} className="flex-1">
+                  <PlayIcon className="mr-2 h-4 w-4" />
+                  Preview in Browser
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleCopyPath}>
+                  <CopyIcon className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           )}
 

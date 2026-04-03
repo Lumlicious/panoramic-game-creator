@@ -9,6 +9,7 @@
  */
 
 import { useEffect, useMemo } from 'react'
+import * as THREE from 'three'
 import { PanoramaView } from './PanoramaView'
 import { useGameStore } from '@/stores/gameStore'
 import type { GameData, GameHotspot } from '@/types'
@@ -35,6 +36,7 @@ export function GameEngine({ gameData, initialNodeId, onNavigate }: GameEnginePr
   const isLoading = useGameStore((state) => state.isLoading)
   const navigate = useGameStore((state) => state.navigate)
   const setLoading = useGameStore((state) => state.setLoading)
+  const queueCameraRestore = useGameStore((state) => state.queueCameraRestore)
 
   // Find current node from game data
   const currentNode = useMemo(() => {
@@ -50,11 +52,23 @@ export function GameEngine({ gameData, initialNodeId, onNavigate }: GameEnginePr
   }, [initialNodeId, gameData.settings.startNodeId, currentNodeId, navigate])
 
   // Handle hotspot click navigation
-  const handleHotspotClick = (hotspot: GameHotspot) => {
+  const handleHotspotClick = (
+    hotspot: GameHotspot,
+    cameraPosition: THREE.Vector3,
+    clickPoint: THREE.Vector3
+  ) => {
     if (!hotspot.targetNodeId) {
       console.warn('Hotspot has no target node:', hotspot.name)
       return
     }
+
+    // Make the arrival direction match what the user clicked (e.g., the couch).
+    // OrbitControls keeps the camera looking at (0,0,0), so to "look towards dir",
+    // we place the camera at -dir * distance.
+    const distance = Math.max(0.0001, cameraPosition.length() || 0.1)
+    const dir = clickPoint.clone().normalize()
+    const restorePos = dir.multiplyScalar(-distance)
+    queueCameraRestore(hotspot.targetNodeId, [restorePos.x, restorePos.y, restorePos.z])
 
     // Simulate loading delay for better UX
     setLoading(true)
@@ -73,8 +87,8 @@ export function GameEngine({ gameData, initialNodeId, onNavigate }: GameEnginePr
         onHotspotClick={handleHotspotClick}
       />
 
-      {/* Debug info (top-left overlay) */}
-      {currentNode && (
+      {/* Debug info (top-left overlay, dev only) */}
+      {import.meta.env.DEV && currentNode && (
         <div
           style={{
             position: 'absolute',

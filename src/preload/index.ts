@@ -38,7 +38,8 @@ const projectAPI: ProjectAPI = {
 // Export API - exposes export operations to renderer
 const exportAPI: ExportAPI = {
   chooseExportDestination: () => ipcRenderer.invoke('export:chooseDestination'),
-  exportProject: (options: ExportOptions) => ipcRenderer.invoke('export:project', options)
+  exportProject: (options: ExportOptions) => ipcRenderer.invoke('export:project', options),
+  previewGame: (exportPath: string) => ipcRenderer.invoke('export:previewGame', exportPath)
 }
 
 // Recent Projects API - exposes recent projects storage to renderer

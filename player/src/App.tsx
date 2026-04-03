@@ -69,8 +69,8 @@ export function App() {
   const [gameData, setGameData] = useState<GameData | null>(null)
 
   useEffect(() => {
-    // Try to load game.json from assets
-    fetch('/assets/data/game.json')
+    // Try to load game.json from assets (relative path works for both dev server and file://)
+    fetch('./assets/data/game.json')
       .then((response) => {
         if (!response.ok) {
           throw new Error('Failed to load game data')

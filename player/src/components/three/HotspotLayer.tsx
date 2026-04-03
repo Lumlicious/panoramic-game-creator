@@ -5,6 +5,7 @@
  */
 
 import type { GameHotspot } from '@/types'
+import * as THREE from 'three'
 import { HotspotMesh } from './HotspotMesh'
 
 interface HotspotLayerProps {
@@ -16,7 +17,11 @@ interface HotspotLayerProps {
   /**
    * Callback when a hotspot is clicked
    */
-  onHotspotClick?: (hotspot: GameHotspot) => void
+  onHotspotClick?: (
+    hotspot: GameHotspot,
+    cameraPosition: THREE.Vector3,
+    clickPoint: THREE.Vector3
+  ) => void
 }
 
 export function HotspotLayer({ hotspots, onHotspotClick }: HotspotLayerProps): JSX.Element {

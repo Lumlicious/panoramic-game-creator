@@ -12,7 +12,6 @@
  */
 
 import { useEffect, useState, useRef, useMemo } from 'react'
-import { OrbitControls } from '@react-three/drei'
 import * as THREE from 'three'
 import { SPHERE_CONFIG } from '@/lib/config'
 import type { CubicFaces } from '@/types/game'
@@ -188,15 +187,10 @@ export function PanoramaSphere({ type, textureUrl, cubicFaces, onClick }: Panora
   // Render equirectangular panorama (sphere)
   if (type === 'equirectangular' && loadedTexture) {
     return (
-      <>
-        <mesh ref={meshRef} scale={[-1, 1, 1]} onClick={handleClick}>
-          <sphereGeometry
-            args={[SPHERE_CONFIG.RADIUS, SPHERE_CONFIG.SEGMENTS, SPHERE_CONFIG.SEGMENTS]}
-          />
-          <meshBasicMaterial side={THREE.BackSide} map={loadedTexture} />
-        </mesh>
-        <PanoramaControls />
-      </>
+      <mesh ref={meshRef} scale={[-1, 1, 1]} onClick={handleClick}>
+        <sphereGeometry args={[SPHERE_CONFIG.RADIUS, SPHERE_CONFIG.SEGMENTS, SPHERE_CONFIG.SEGMENTS]} />
+        <meshBasicMaterial side={THREE.BackSide} map={loadedTexture} />
+      </mesh>
     )
   }
 
@@ -221,38 +215,12 @@ export function PanoramaSphere({ type, textureUrl, cubicFaces, onClick }: Panora
   // Uses material prop directly on mesh - R3F properly handles material arrays
   if (type === 'cubic' && cubicMaterials) {
     return (
-      <>
-        <mesh ref={meshRef} material={cubicMaterials} onClick={handleClick}>
-          <boxGeometry
-            args={[SPHERE_CONFIG.RADIUS * 2, SPHERE_CONFIG.RADIUS * 2, SPHERE_CONFIG.RADIUS * 2]}
-          />
-        </mesh>
-        <PanoramaControls />
-      </>
+      <mesh ref={meshRef} material={cubicMaterials} onClick={handleClick}>
+        <boxGeometry args={[SPHERE_CONFIG.RADIUS * 2, SPHERE_CONFIG.RADIUS * 2, SPHERE_CONFIG.RADIUS * 2]} />
+      </mesh>
     )
   }
 
-  // Still loading - just render controls
-  return <PanoramaControls />
-}
-
-/**
- * Shared OrbitControls component
- * Optimized for performance with smoother damping
- */
-function PanoramaControls() {
-  return (
-    <OrbitControls
-      makeDefault
-      enablePan={false}
-      enableZoom={false}
-      enableRotate={true}
-      enableDamping={true}
-      dampingFactor={0.1} // Higher = more responsive (was 0.05)
-      rotateSpeed={-0.4} // Slightly slower for smoother feel
-      minPolarAngle={0.1} // Prevent looking straight up (reduces jitter)
-      maxPolarAngle={Math.PI - 0.1} // Prevent looking straight down
-      target={[0, 0, 0]}
-    />
-  )
+  // Still loading
+  return null
 }

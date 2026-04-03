@@ -12,7 +12,7 @@ import { triangulateSphericalPolygon } from '@/lib/triangulation'
 
 interface HotspotMeshProps {
   hotspot: GameHotspot
-  onClick?: (hotspot: GameHotspot) => void
+  onClick?: (hotspot: GameHotspot, cameraPosition: THREE.Vector3, clickPoint: THREE.Vector3) => void
   onPointerEnter?: () => void
   onPointerLeave?: () => void
 }
@@ -39,10 +39,16 @@ export function HotspotMesh({
   // Handle click
   const handleClick = (event: ThreeEvent<MouseEvent>) => {
     event.stopPropagation()
-    onClick?.(hotspot)
+    const cameraPos = event.camera?.position?.clone?.()
+    const clickPoint = event.point?.clone?.()
+    onClick?.(
+      hotspot,
+      cameraPos ?? new THREE.Vector3(0, 0, 0.1),
+      clickPoint ?? new THREE.Vector3(0, 0, 1)
+    )
   }
 
-  // Handle hover - only change cursor
+  // Handle hover - cursor only, no visual change
   const handlePointerEnter = (event: ThreeEvent<PointerEvent>) => {
     event.stopPropagation()
     onPointerEnter?.()
@@ -54,7 +60,6 @@ export function HotspotMesh({
     document.body.style.cursor = 'auto'
   }
 
-  // Hotspots are completely invisible - only cursor changes on hover
   return (
     <mesh
       geometry={geometry}

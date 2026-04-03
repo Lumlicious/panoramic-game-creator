@@ -10,6 +10,10 @@ export const useGameStore = create<GameState>((set) => ({
   currentNodeId: '',
   previousNodeId: null,
 
+  // Camera persistence
+  cameraPosition: null,
+  pendingCameraRestore: null,
+
   // Progress tracking
   visitedNodes: new Set(),
 
@@ -30,6 +34,17 @@ export const useGameStore = create<GameState>((set) => ({
 
   setLoading: (isLoading: boolean) => set({ isLoading }),
 
+  setCameraPosition: (position: [number, number, number]) => set({ cameraPosition: position }),
+
+  queueCameraRestore: (nodeId: string, position: [number, number, number]) =>
+    set({
+      // Also keep last known camera position for debugging/telemetry if needed
+      cameraPosition: position,
+      pendingCameraRestore: { nodeId, position }
+    }),
+
+  clearCameraRestore: () => set({ pendingCameraRestore: null }),
+
   addToInventory: (item: InventoryItem) =>
     set((state) => ({
       inventory: [...state.inventory, item]
@@ -44,6 +59,8 @@ export const useGameStore = create<GameState>((set) => ({
     set({
       currentNodeId: '',
       previousNodeId: null,
+      cameraPosition: null,
+      pendingCameraRestore: null,
       visitedNodes: new Set(),
       isLoading: false,
       inventory: [],

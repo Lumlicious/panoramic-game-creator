@@ -149,14 +149,17 @@ function transformNode(node: EditorNode): GameNode {
     }
   } else {
     // Cubic panorama - generate face URLs
-    // Files are named: {nodeId}_front.jpg, {nodeId}_back.jpg, etc.
+    // Files are named: {nodeId}_front.{ext}, {nodeId}_back.{ext}, etc.
+    // Derive extension from an existing face path to preserve original format
+    const anyFacePath = Object.values(node.panorama.faces ?? {})[0] ?? ''
+    const ext = anyFacePath.includes('.') ? anyFacePath.split('.').pop()! : 'jpg'
     const faces: CubicFaces = {
-      front: `./assets/panoramas/${node.id}_front.jpg`,
-      back: `./assets/panoramas/${node.id}_back.jpg`,
-      left: `./assets/panoramas/${node.id}_left.jpg`,
-      right: `./assets/panoramas/${node.id}_right.jpg`,
-      top: `./assets/panoramas/${node.id}_top.jpg`,
-      bottom: `./assets/panoramas/${node.id}_bottom.jpg`
+      front: `./assets/panoramas/${node.id}_front.${ext}`,
+      back: `./assets/panoramas/${node.id}_back.${ext}`,
+      left: `./assets/panoramas/${node.id}_left.${ext}`,
+      right: `./assets/panoramas/${node.id}_right.${ext}`,
+      top: `./assets/panoramas/${node.id}_top.${ext}`,
+      bottom: `./assets/panoramas/${node.id}_bottom.${ext}`
     }
 
     return {

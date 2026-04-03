@@ -8,10 +8,11 @@
  * - Copy assets and built files
  */
 
-import { ipcMain, dialog } from 'electron'
-import { mkdir, writeFile, copyFile, readdir, stat } from 'fs/promises'
-import { join } from 'path'
+import { ipcMain, dialog, shell } from 'electron'
+import { mkdir, writeFile, copyFile, readdir, stat, readFile } from 'fs/promises'
+import { join, extname } from 'path'
 import { spawn } from 'child_process'
+import * as http from 'http'
 import { transformProjectToGameData, ValidationError } from '../transformers/gameDataTransformer'
 
 /**
@@ -43,12 +44,18 @@ interface ExportResult {
 /**
  * Register all export-related IPC handlers
  */
+// Track active preview server so we can close it before starting a new one
+let activePreviewServer: http.Server | null = null
+
 export function registerExportHandlers(): void {
   // Choose export destination
   ipcMain.handle('export:chooseDestination', handleChooseExportDestination)
 
   // Export project
   ipcMain.handle('export:project', handleExportProject)
+
+  // Preview exported game in browser via local HTTP server
+  ipcMain.handle('export:previewGame', handlePreviewGame)
 }
 
 /**
@@ -176,6 +183,71 @@ async function handleExportProject(
 }
 
 /**
+ * Serve exported game via local HTTP server and open in default browser
+ */
+async function handlePreviewGame(
+  _event: Electron.IpcMainInvokeEvent,
+  exportPath: string
+): Promise<IPCResponse<string>> {
+  try {
+    // Close any previously running preview server
+    if (activePreviewServer) {
+      activePreviewServer.close()
+      activePreviewServer = null
+    }
+
+    const MIME_TYPES: Record<string, string> = {
+      '.html': 'text/html',
+      '.js': 'application/javascript',
+      '.css': 'text/css',
+      '.json': 'application/json',
+      '.jpg': 'image/jpeg',
+      '.jpeg': 'image/jpeg',
+      '.png': 'image/png',
+      '.webp': 'image/webp',
+      '.svg': 'image/svg+xml',
+      '.ico': 'image/x-icon'
+    }
+
+    const server = http.createServer(async (req, res) => {
+      try {
+        // Strip query string, default to index.html
+        const urlPath = (req.url ?? '/').split('?')[0]
+        const filePath = join(exportPath, urlPath === '/' ? 'index.html' : urlPath)
+
+        const data = await readFile(filePath)
+        const mime = MIME_TYPES[extname(filePath).toLowerCase()] ?? 'application/octet-stream'
+        res.writeHead(200, { 'Content-Type': mime })
+        res.end(data)
+      } catch {
+        res.writeHead(404)
+        res.end('Not found')
+      }
+    })
+
+    // Find a free port by binding to 0
+    await new Promise<void>((resolve, reject) => {
+      server.listen(0, '127.0.0.1', () => resolve())
+      server.on('error', reject)
+    })
+
+    activePreviewServer = server
+    const address = server.address() as { port: number }
+    const url = `http://127.0.0.1:${address.port}`
+
+    // Open in default browser
+    shell.openExternal(url)
+
+    return { success: true, data: url }
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to start preview server'
+    }
+  }
+}
+
+/**
  * Get Node.js executable path
  *
  * In Electron, process.execPath points to Electron binary, not Node.js.
@@ -204,13 +276,6 @@ function getNodePath(): string {
     const nodePath = join(nodeDir, isWindows ? 'node.exe' : 'node')
     console.log('[Export] Derived node path from npm:', nodePath)
     return nodePath
-  }
-
-  // Strategy 3: Common nvm location (macOS/Linux)
-  if (!isWindows && process.env.HOME) {
-    const nvmNodePath = join(process.env.HOME, '.nvm/versions/node/v23.9.0/bin/node')
-    console.log('[Export] Trying nvm default location:', nvmNodePath)
-    return nvmNodePath
   }
 
   // Fallback: hope it's in PATH

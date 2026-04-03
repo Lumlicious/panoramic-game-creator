@@ -77,6 +77,12 @@ export interface GameState {
   currentNodeId: string
   previousNodeId: string | null
 
+  // Camera persistence (preserve heading across node transitions)
+  // Camera position is used because OrbitControls points the camera at (0,0,0),
+  // so heading is derived from camera.position relative to the origin.
+  cameraPosition: [number, number, number] | null
+  pendingCameraRestore: { nodeId: string; position: [number, number, number] } | null
+
   // Progress tracking
   visitedNodes: Set<string>
 
@@ -90,6 +96,9 @@ export interface GameState {
   // Actions
   navigate: (nodeId: string) => void
   setLoading: (isLoading: boolean) => void
+  setCameraPosition: (position: [number, number, number]) => void
+  queueCameraRestore: (nodeId: string, position: [number, number, number]) => void
+  clearCameraRestore: () => void
   addToInventory: (item: InventoryItem) => void
   setVariable: (key: string, value: unknown) => void
   reset: () => void

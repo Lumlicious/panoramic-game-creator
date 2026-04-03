@@ -197,6 +197,14 @@ export interface ExportAPI {
    * @param options - Export options
    */
   exportProject: (options: ExportOptions) => Promise<IPCResponse<ExportResult>>
+
+  /**
+   * Start a local HTTP server for the exported game and open it in the default browser
+   *
+   * @param exportPath - Path to the exported game directory
+   * @returns The local URL (e.g. http://127.0.0.1:PORT)
+   */
+  previewGame: (exportPath: string) => Promise<IPCResponse<string>>
 }
 
 /**
